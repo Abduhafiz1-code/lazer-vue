@@ -29,24 +29,52 @@ export const useAuthStore = defineStore("auth", {
     async signInWithEmail(email) {
       if (skipEmailVerification) {
         const password = buildDevPassword(email);
-        let result = await supabase.auth.signInWithPassword({
+        const result = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (result.error) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-          if (signUpError && signUpError.status !== 400) {
-            throw signUpError;
-          }
-          result = await supabase.auth.signInWithPassword({ email, password });
-          if (result.error) throw result.error;
+        if (!result.error) {
+          this.user = result.data.user || result.data.session?.user || null;
+          this.magicLinkSent = false;
+          return;
         }
 
-        this.user = result.data.user || result.data.session?.user || null;
+        // Existing user may not have the generated password; fall back to normal OTP login.
+        if (result.error.status === 400 || result.error.status === 401) {
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: window.location.origin },
+          });
+          if (otpError) throw otpError;
+          this.magicLinkSent = true;
+          return;
+        }
+
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (signUpError) {
+          if (signUpError.status === 400) {
+            const { error: otpError } = await supabase.auth.signInWithOtp({
+              email,
+              options: { emailRedirectTo: window.location.origin },
+            });
+            if (otpError) throw otpError;
+            this.magicLinkSent = true;
+            return;
+          }
+          throw signUpError;
+        }
+
+        const signInResult = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInResult.error) throw signInResult.error;
+        this.user =
+          signInResult.data.user || signInResult.data.session?.user || null;
         this.magicLinkSent = false;
         return;
       }
