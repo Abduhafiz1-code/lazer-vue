@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabase";
 
 const skipEmailVerification =
   import.meta.env.VITE_DISABLE_EMAIL_VERIFICATION === "true";
+const emailRedirectTo =
+  import.meta.env.VITE_SUPABASE_REDIRECT_URL || window.location.origin;
 
 function buildDevPassword(email) {
   return `dev-temp-${btoa(email)}`;
@@ -44,7 +46,7 @@ export const useAuthStore = defineStore("auth", {
         if (result.error.status === 400 || result.error.status === 401) {
           const { error: otpError } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: window.location.origin },
+            options: { emailRedirectTo },
           });
           if (otpError) throw otpError;
           this.magicLinkSent = true;
@@ -59,7 +61,7 @@ export const useAuthStore = defineStore("auth", {
           if (signUpError.status === 400) {
             const { error: otpError } = await supabase.auth.signInWithOtp({
               email,
-              options: { emailRedirectTo: window.location.origin },
+              options: { emailRedirectTo },
             });
             if (otpError) throw otpError;
             this.magicLinkSent = true;
@@ -81,7 +83,7 @@ export const useAuthStore = defineStore("auth", {
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo },
       });
       if (error) throw error;
       this.magicLinkSent = true;

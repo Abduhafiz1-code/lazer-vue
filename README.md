@@ -3,6 +3,7 @@
 Lazer bilan kesish/gravировка qilish uchun mm-aniqlikdagi chizmachilik ilovasi.
 
 ## Texnologiyalar
+
 - Vue 3 (Composition API) + Vite
 - Vue Router — sahifalar orasida yurish (Kirish / Loyihalar / Muharrir)
 - Pinia — holatni boshqarish (auth, loyihalar ro'yxati, chizma holati)
@@ -12,6 +13,7 @@ Lazer bilan kesish/gravировка qilish uchun mm-aniqlikdagi chizmachilik ilo
 ## O'rnatish
 
 1. Kerakli paketlarni o'rnating:
+
    ```
    npm install
    ```
@@ -22,12 +24,15 @@ Lazer bilan kesish/gravировка qilish uchun mm-aniqlikdagi chizmachilik ilo
    - **Settings → API** bo'limidan Project URL va anon key'ni oling.
 
 3. `.env.example` faylidan nusxa oling va o'z ma'lumotlaringizni kiriting:
+
    ```
    cp .env.example .env
    ```
+
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbG....
+   VITE_SUPABASE_REDIRECT_URL=https://lazer-vue.vercel.app
    ```
 
 4. Supabase loyihangizda **Authentication → Providers → Email**'da
@@ -65,6 +70,7 @@ Lazer bilan kesish/gravировка qilish uchun mm-aniqlikdagi chizmachilik ilo
 ```
 npm run build
 ```
+
 `dist/` papkasini istalgan statik hosting'ga (Vercel, Netlify, Cloudflare Pages)
 joylashtiring va muhit o'zgaruvchilarini (`VITE_SUPABASE_URL`,
 `VITE_SUPABASE_ANON_KEY`) hosting sozlamalarida kiriting.
