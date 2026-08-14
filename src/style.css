@@ -4,9 +4,52 @@
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1b1d1f;
+  color: #f2f2f0;
+}
 
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { opacity: 1; }
 
 .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+/* --- Global form field fix ---
+   Inputs must always have an explicit text color. Left unset, some browsers
+   (and dark-mode OS themes) render input text white on a white autofill
+   background, making everything the user types invisible. */
+input, textarea, select {
+  color: #f2f2f0;
+  background-color: transparent;
+  accent-color: #e07a3f;
+}
+input::placeholder, textarea::placeholder {
+  color: #7a7a76;
+  opacity: 1;
+}
+/* Chrome/Edge autofill forces a white background + dark text by default;
+   this keeps it consistent with the app's dark theme. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f2f2f0;
+  -webkit-box-shadow: 0 0 0px 1000px #2a2d31 inset;
+  caret-color: #f2f2f0;
+  transition: background-color 9999s ease-in-out 0s;
+}
+textarea { resize: vertical; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #383b3f; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4d51; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

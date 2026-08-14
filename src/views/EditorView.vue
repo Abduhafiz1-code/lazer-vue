@@ -1,7 +1,7 @@
 <template>
   <div class="h-screen flex flex-col bg-bg">
     <div class="flex items-center gap-3 px-3 py-2 bg-panel border-b border-line">
-      <button class="text-text2 hover:text-white text-sm" @click="router.push({ name: 'projects' })">← Loyihalar</button>
+      <button class="text-text2 hover:text-white text-sm transition" @click="router.push({ name: 'projects' })">← Loyihalar</button>
     </div>
     <Toolbar
       :saving="saving"
@@ -27,11 +27,13 @@ import Toolbar from '../components/Toolbar.vue'
 import PropertiesPanel from '../components/PropertiesPanel.vue'
 import CanvasStage from '../components/CanvasStage.vue'
 import { toSvg, toDxf, download } from '../utils/export'
+import { useToastStore } from '../stores/toast'
 
 const route = useRoute()
 const router = useRouter()
 const store = useCanvasStore()
 const projectsStore = useProjectsStore()
+const toast = useToastStore()
 const stage = ref(null)
 const saving = ref(false)
 
@@ -42,7 +44,7 @@ onMounted(async () => {
       const data = await projectsStore.load(id)
       store.loadProject(data.id, data.name, data.shapes || [])
     } catch (e) {
-      alert("Loyihani yuklab bo'lmadi.")
+      toast.error("Loyihani yuklab bo'lmadi.")
       router.push({ name: 'projects' })
       return
     }
@@ -58,8 +60,9 @@ async function save() {
   try {
     await projectsStore.save(store.projectId, store.projectName, store.shapes)
     store.dirty = false
+    toast.success('Loyiha saqlandi.')
   } catch (e) {
-    alert('Saqlashda xatolik yuz berdi.')
+    toast.error('Saqlashda xatolik yuz berdi.')
   } finally {
     saving.value = false
   }

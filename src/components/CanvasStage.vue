@@ -4,16 +4,22 @@
     <div class="absolute bottom-2.5 left-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md pointer-events-none">
       X: {{ fmt(mouseWorld.x) }} mm &nbsp; Y: {{ fmt(mouseWorld.y) }} mm
     </div>
-    <div class="absolute bottom-2.5 right-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md">
+    <div class="absolute bottom-2.5 right-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md flex items-center gap-2">
+      <button class="hover:text-white" title="Kichraytirish" @click="zoomBy(0.85)">−</button>
       {{ Math.round(store.scale / 4 * 100) }}%
+      <button class="hover:text-white" title="Kattalashtirish" @click="zoomBy(1.15)">+</button>
+    </div>
+    <div class="absolute top-2.5 left-1/2 -translate-x-1/2 text-[11px] text-text2 bg-panel/85 px-3 py-1.5 rounded-md pointer-events-none hidden md:block">
+      {{ hint }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useCanvasStore } from '../stores/canvas'
-import { LAYER_COLOR, fmt, getHandles, distToSeg } from '../utils/geometry'
+import { LAYER_COLOR, fmt, getHandles, distToSeg, shapeBounds, moveShape, resizeShapeHandle, cloneShape } from '../utils/geometry'
+import { computeGuides } from '../utils/guides'
 
 const store = useCanvasStore()
 const wrap = ref(null)
@@ -21,12 +27,21 @@ const cv = ref(null)
 let ctx = null
 let drawing = null
 let panning = null
+let dragState = null // { mode: 'move'|'resize', id, handleIndex, orig, startWorld }
+let activeGuides = { guides: [], gaps: [] }
+let hoverHandle = false
 const mouseWorld = ref({ x: 0, y: 0 })
 
 const cursorClass = computed(() => {
-  if (store.tool === 'pan') return 'cursor-grab'
-  if (store.tool === 'select') return 'cursor-default'
+  if (store.tool === 'pan' || panning) return 'cursor-grab'
+  if (store.tool === 'select') return hoverHandle ? 'cursor-nwse-resize' : (dragState?.mode === 'move' ? 'cursor-grabbing' : 'cursor-default')
   return 'cursor-crosshair'
+})
+
+const hint = computed(() => {
+  if (store.tool === 'select') return "Bosing va torting: siljitish • Burchak nuqtalari: o'lchamini o'zgartirish"
+  if (store.tool === 'polyline') return 'Nuqtalarni bosib chizing • Enter yoki 2 marta bosish: tugatish'
+  return 'Bosib torting, keyin qo\'yib yuboring'
 })
 
 function worldToScreen(x, y) { return { x: store.originX + x * store.scale, y: store.originY + y * store.scale } }
@@ -100,10 +115,15 @@ function drawShape(sh, selected) {
   }
   ctx.stroke()
   if (selected) {
-    ctx.fillStyle = shapeColor(sh)
     getHandles(sh).forEach(h => {
       const s = worldToScreen(h.x, h.y)
-      ctx.fillRect(s.x - 3, s.y - 3, 6, 6)
+      ctx.fillStyle = h.resize ? '#e07a3f' : shapeColor(sh)
+      ctx.beginPath()
+      ctx.arc(s.x, s.y, 4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#141516'
+      ctx.lineWidth = 1
+      ctx.stroke()
     })
   }
 }
@@ -183,6 +203,54 @@ function drawPreview() {
   ctx.setLineDash([])
 }
 
+function drawGuides() {
+  const r = wrap.value.getBoundingClientRect()
+  ctx.save()
+  ctx.strokeStyle = '#e07a3f'
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 3])
+  activeGuides.guides.forEach(g => {
+    ctx.beginPath()
+    if (g.axis === 'v') {
+      const p = worldToScreen(g.pos, 0)
+      ctx.moveTo(p.x, 0); ctx.lineTo(p.x, r.height)
+    } else {
+      const p = worldToScreen(0, g.pos)
+      ctx.moveTo(0, p.y); ctx.lineTo(r.width, p.y)
+    }
+    ctx.stroke()
+  })
+  ctx.setLineDash([])
+  ctx.restore()
+
+  activeGuides.gaps.forEach(g => {
+    ctx.save()
+    ctx.strokeStyle = '#e07a3f'
+    ctx.lineWidth = 1
+    let mx, my, text
+    if (g.side === 'left' || g.side === 'right') {
+      const a = worldToScreen(g.x1, g.y), b = worldToScreen(g.x2, g.y)
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
+      mx = (a.x + b.x) / 2; my = a.y
+      text = fmt(g.gap) + ' mm'
+    } else {
+      const a = worldToScreen(g.x, g.y1), b = worldToScreen(g.x, g.y2)
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
+      mx = a.x; my = (a.y + b.y) / 2
+      text = fmt(g.gap) + ' mm'
+    }
+    ctx.font = '10px ui-monospace, monospace'
+    const w = ctx.measureText(text).width
+    ctx.fillStyle = '#e07a3f'
+    ctx.fillRect(mx - w / 2 - 3, my - 7, w + 6, 14)
+    ctx.fillStyle = '#141516'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, mx, my + 1)
+    ctx.restore()
+  })
+}
+
 function render() {
   const r = wrap.value.getBoundingClientRect()
   ctx.clearRect(0, 0, r.width, r.height)
@@ -190,6 +258,7 @@ function render() {
   store.shapes.forEach(sh => drawShape(sh, sh.id === store.selectedId))
   if (store.dimOn) store.shapes.forEach(sh => drawDimensions(sh))
   if (drawing) drawPreview()
+  if (dragState && (activeGuides.guides.length || activeGuides.gaps.length)) drawGuides()
 }
 
 function hitTest(px, py) {
@@ -213,6 +282,18 @@ function hitTest(px, py) {
   return null
 }
 
+function hitHandle(px, py) {
+  const sh = store.selectedShape
+  if (!sh) return null
+  const tolPx = 8
+  const handles = getHandles(sh)
+  for (let i = 0; i < handles.length; i++) {
+    const s = worldToScreen(handles[i].x, handles[i].y)
+    if (Math.hypot(s.x - px, s.y - py) <= tolPx) return { index: i }
+  }
+  return null
+}
+
 function onDown(e) {
   const m = getMousePos(e)
   if (store.tool === 'pan' || e.button === 1) {
@@ -223,8 +304,19 @@ function onDown(e) {
   const wx = store.snap(w.x), wy = store.snap(w.y)
 
   if (store.tool === 'select') {
+    const handle = hitHandle(m.x, m.y)
+    if (handle && store.selectedShape) {
+      dragState = { mode: 'resize', id: store.selectedShape.id, handleIndex: handle.index, orig: cloneShape(store.selectedShape) }
+      return
+    }
     const hit = hitTest(m.x, m.y)
-    store.selectShape(hit ? hit.id : null)
+    if (hit) {
+      store.selectShape(hit.id)
+      dragState = { mode: 'move', id: hit.id, orig: cloneShape(hit), startWorld: w }
+    } else {
+      store.selectShape(null)
+      dragState = null
+    }
     render()
     return
   }
@@ -261,6 +353,10 @@ function onDblClick() {
   }
 }
 
+function otherShapesFor(id) {
+  return store.shapes.filter(s => s.id !== id).map(s => ({ shape: s }))
+}
+
 function onMove(e) {
   const m = getMousePos(e)
   if (panning) {
@@ -269,12 +365,73 @@ function onMove(e) {
     render()
     return
   }
+
   const w = screenToWorld(m.x, m.y)
   mouseWorld.value = { x: store.snap(w.x), y: store.snap(w.y) }
+
+  if (dragState) {
+    const sh = store.shapes.find(s => s.id === dragState.id)
+    if (!sh) { dragState = null; return }
+
+    if (dragState.mode === 'move') {
+      const rawDx = w.x - dragState.startWorld.x
+      const rawDy = w.y - dragState.startWorld.y
+      const origBounds = shapeBounds(dragState.orig)
+      let tentativeDx = store.snapOn ? store.snap(origBounds.minX + rawDx) - origBounds.minX : rawDx
+      let tentativeDy = store.snapOn ? store.snap(origBounds.minY + rawDy) - origBounds.minY : rawDy
+
+      let guideResult = { dx: 0, dy: 0, guides: [], gaps: [] }
+      if (store.guidesOn) {
+        const tentativeBounds = {
+          minX: origBounds.minX + tentativeDx, maxX: origBounds.maxX + tentativeDx,
+          minY: origBounds.minY + tentativeDy, maxY: origBounds.maxY + tentativeDy
+        }
+        guideResult = computeGuides(tentativeBounds, otherShapesFor(dragState.id), store.scale)
+      }
+      const finalDx = tentativeDx + guideResult.dx
+      const finalDy = tentativeDy + guideResult.dy
+      activeGuides = { guides: guideResult.guides, gaps: guideResult.gaps }
+
+      const fresh = cloneShape(dragState.orig)
+      fresh.id = sh.id
+      moveShape(fresh, finalDx, finalDy)
+      Object.assign(sh, fresh)
+      store.dirty = true
+    } else if (dragState.mode === 'resize') {
+      const fresh = cloneShape(dragState.orig)
+      fresh.id = sh.id
+      resizeShapeHandle(fresh, dragState.handleIndex, store.snap(w.x), store.snap(w.y))
+      Object.assign(sh, fresh)
+      store.dirty = true
+    }
+    render()
+    return
+  }
+
+  hoverHandle = store.tool === 'select' && !!hitHandle(m.x, m.y)
   if (drawing) render()
 }
 
-function onUp() { panning = null }
+function onUp() {
+  panning = null
+  if (dragState) {
+    store.commitDrag()
+    dragState = null
+    activeGuides = { guides: [], gaps: [] }
+    render()
+  }
+}
+
+function zoomBy(factor) {
+  const r = wrap.value.getBoundingClientRect()
+  const cx = r.width / 2, cy = r.height / 2
+  const before = screenToWorld(cx, cy)
+  store.scale = Math.max(0.5, Math.min(60, store.scale * factor))
+  const after = worldToScreen(before.x, before.y)
+  store.originX += cx - after.x
+  store.originY += cy - after.y
+  render()
+}
 
 function onWheel(e) {
   const m = getMousePos(e)
@@ -289,6 +446,26 @@ function onWheel(e) {
 
 function onKeydown(e) {
   if (e.target.tagName === 'INPUT') return
+  const ctrl = e.ctrlKey || e.metaKey
+
+  if (ctrl && e.key.toLowerCase() === 'z') {
+    e.preventDefault()
+    if (e.shiftKey) store.redo(); else store.undo()
+    return
+  }
+  if (ctrl && e.key.toLowerCase() === 'y') {
+    e.preventDefault(); store.redo(); return
+  }
+  if (ctrl && e.key.toLowerCase() === 'd') {
+    e.preventDefault(); store.duplicateSelected(); return
+  }
+  if (ctrl && e.key.toLowerCase() === 'c') {
+    e.preventDefault(); store.copySelected(); return
+  }
+  if (ctrl && e.key.toLowerCase() === 'v') {
+    e.preventDefault(); store.pasteClipboard(); return
+  }
+
   if (e.key === 'Escape') { drawing = null; render() }
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (store.selectedId) store.deleteShape(store.selectedId)
@@ -299,6 +476,16 @@ function onKeydown(e) {
     drawing = null
     render()
   }
+
+  if (store.selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault()
+    const step = e.shiftKey ? (store.snapMm || 1) * 10 : (store.snapMm || 1)
+    const map = { ArrowUp: [0, -step], ArrowDown: [0, step], ArrowLeft: [-step, 0], ArrowRight: [step, 0] }
+    const [dx, dy] = map[e.key]
+    store.nudgeSelected(dx, dy)
+    return
+  }
+
   const map = { v: 'select', l: 'line', r: 'rect', c: 'circle', p: 'polyline' }
   if (map[e.key]) { store.setTool(map[e.key]); drawing = null }
 }

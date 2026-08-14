@@ -41,7 +41,7 @@
       <div
         v-for="s in store.shapes"
         :key="s.id"
-        class="flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer hover:bg-panel2"
+        class="flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer hover:bg-panel2 transition"
         :class="s.id === store.selectedId ? 'text-white bg-panel2' : 'text-text2'"
         @click="store.selectShape(s.id)"
       >
