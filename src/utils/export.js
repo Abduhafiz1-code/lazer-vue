@@ -20,6 +20,25 @@ export function toSvg(shapes) {
       parts.push(
         `<circle cx="${fmt(sh.cx - b.minX)}" cy="${fmt(sh.cy - b.minY)}" r="${fmt(sh.r)}" stroke="${col}" stroke-width="0.1" fill="none" data-layer="${cls}"/>`,
       );
+    } else if (sh.type === "ellipse") {
+      parts.push(
+        `<ellipse cx="${fmt(sh.cx - b.minX)}" cy="${fmt(sh.cy - b.minY)}" rx="${fmt(sh.rx)}" ry="${fmt(sh.ry)}" stroke="${col}" stroke-width="0.1" fill="none" data-layer="${cls}"/>`,
+      );
+    } else if (sh.type === "semicircle") {
+      const pts = [];
+      const segments = 40;
+      for (let i = 0; i <= segments; i++) {
+        const a =
+          (sh.start ?? -Math.PI / 2) +
+          ((sh.end ?? Math.PI / 2) - (sh.start ?? -Math.PI / 2)) *
+            (i / segments);
+        pts.push(
+          `${fmt(sh.cx + Math.cos(a) * sh.r - b.minX)},${fmt(sh.cy + Math.sin(a) * sh.r - b.minY)}`,
+        );
+      }
+      parts.push(
+        `<polyline points="${pts.join(" ")}" stroke="${col}" stroke-width="0.1" fill="none" data-layer="${cls}"/>`,
+      );
     } else if (sh.type === "polyline" || sh.type === "path") {
       const pts = sh.points
         .map((p) => fmt(p[0] - b.minX) + "," + fmt(p[1] - b.minY))
@@ -53,6 +72,23 @@ export function toDxf(shapes) {
       ents.push(
         `0\nCIRCLE\n8\n${ly}\n10\n${fx(sh.cx)}\n20\n${flipY(sh.cy)}\n40\n${fmt(sh.r)}`,
       );
+    } else if (sh.type === "ellipse") {
+      ents.push(
+        `0\nELLIPSE\n8\n${ly}\n10\n${fx(sh.cx)}\n20\n${flipY(sh.cy)}\n11\n${fmt(sh.rx)}\n21\n${fmt(sh.ry)}\n40\n0`,
+      );
+    } else if (sh.type === "semicircle") {
+      const pts = [];
+      const segs = 40;
+      const start = sh.start ?? -Math.PI / 2;
+      const end = sh.end ?? Math.PI / 2;
+      for (let i = 0; i <= segs; i++) {
+        const a = start + ((end - start) * i) / segs;
+        pts.push([sh.cx + Math.cos(a) * sh.r, sh.cy + Math.sin(a) * sh.r]);
+      }
+      const body = pts
+        .map((p) => `10\n${fx(p[0])}\n20\n${flipY(p[1])}`)
+        .join("\n");
+      ents.push(`0\nLWPOLYLINE\n8\n${ly}\n90\n${pts.length}\n70\n0\n${body}`);
     } else if (sh.type === "rect") {
       const pts = [
         [sh.x, sh.y],

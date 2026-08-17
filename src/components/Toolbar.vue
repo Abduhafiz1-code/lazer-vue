@@ -147,6 +147,8 @@ const tools = [
   { id: "line", icon: "╱", label: "Chiziq (L)" },
   { id: "rect", icon: "▭", label: "To'rtburchak (R)" },
   { id: "circle", icon: "◯", label: "Aylana (C)" },
+  { id: "ellipse", icon: "⬭", label: "Oval (O)" },
+  { id: "semicircle", icon: "◔", label: "Yarim aylana (S)" },
   { id: "polyline", icon: "∠", label: "Erkin chiziq (P)" },
   { id: "polygon", icon: "⬡", label: "Ko'p qirrali shakl (G)" },
   {

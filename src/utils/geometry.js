@@ -30,6 +30,16 @@ export function getHandles(sh) {
       { x: sh.cx, y: sh.cy },
       { x: sh.cx + sh.r, y: sh.cy, resize: true },
     ];
+  if (sh.type === "ellipse")
+    return [
+      { x: sh.cx, y: sh.cy },
+      { x: sh.cx + sh.rx, y: sh.cy, resize: true },
+    ];
+  if (sh.type === "semicircle")
+    return [
+      { x: sh.cx, y: sh.cy },
+      { x: sh.cx + sh.r, y: sh.cy, resize: true },
+    ];
   if (isPointsType(sh)) return sh.points.map((p) => ({ x: p[0], y: p[1] }));
   return [];
 }
@@ -61,6 +71,19 @@ export function resizeShapeHandle(sh, index, wx, wy) {
       sh.cx = wx;
       sh.cy = wy;
     } else sh.r = Math.max(0.1, Math.hypot(wx - sh.cx, wy - sh.cy));
+  } else if (sh.type === "ellipse") {
+    if (index === 0) {
+      sh.cx = wx;
+      sh.cy = wy;
+    } else {
+      sh.rx = Math.max(0.1, Math.abs(wx - sh.cx));
+      sh.ry = Math.max(0.1, Math.abs(wy - sh.cy));
+    }
+  } else if (sh.type === "semicircle") {
+    if (index === 0) {
+      sh.cx = wx;
+      sh.cy = wy;
+    } else sh.r = Math.max(0.1, Math.hypot(wx - sh.cx, wy - sh.cy));
   } else if (isPointsType(sh)) {
     if (sh.points[index]) sh.points[index] = [wx, wy];
   }
@@ -82,6 +105,32 @@ export function circlePoints(cx, cy, r, segments = 48) {
   const pts = [];
   for (let i = 0; i < segments; i++) {
     const a = (i / segments) * Math.PI * 2;
+    pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+  }
+  return pts;
+}
+
+export function ellipsePoints(cx, cy, rx, ry, segments = 48) {
+  const pts = [];
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+  }
+  return pts;
+}
+
+export function semiCirclePoints(
+  cx,
+  cy,
+  r,
+  start = -Math.PI / 2,
+  end = Math.PI / 2,
+  segments = 48,
+) {
+  const pts = [];
+  const total = end - start;
+  for (let i = 0; i <= segments; i++) {
+    const a = start + (i / segments) * total;
     pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
   }
   return pts;
@@ -117,6 +166,19 @@ export function shapeToPoints(sh, circleSegments = 48) {
       points: circlePoints(sh.cx, sh.cy, sh.r, circleSegments),
       closed: true,
     };
+  if (sh.type === "ellipse")
+    return {
+      points: ellipsePoints(sh.cx, sh.cy, sh.rx, sh.ry, circleSegments),
+      closed: true,
+    };
+  if (sh.type === "semicircle") {
+    const start = sh.start ?? -Math.PI / 2;
+    const end = sh.end ?? Math.PI / 2;
+    return {
+      points: semiCirclePoints(sh.cx, sh.cy, sh.r, start, end, circleSegments),
+      closed: false,
+    };
+  }
   if (isPointsType(sh))
     return { points: sh.points.map((p) => [p[0], p[1]]), closed: !!sh.closed };
   return { points: [], closed: false };
@@ -155,6 +217,22 @@ export function shapeBounds(sh) {
       maxY: sh.cy + sh.r,
     };
   }
+  if (sh.type === "ellipse") {
+    return {
+      minX: sh.cx - sh.rx,
+      minY: sh.cy - sh.ry,
+      maxX: sh.cx + sh.rx,
+      maxY: sh.cy + sh.ry,
+    };
+  }
+  if (sh.type === "semicircle") {
+    return {
+      minX: sh.cx - sh.r,
+      minY: sh.cy - sh.r,
+      maxX: sh.cx + sh.r,
+      maxY: sh.cy + sh.r,
+    };
+  }
   const handles = getHandles(sh);
   let minX = 1e9,
     minY = 1e9,
@@ -179,6 +257,12 @@ export function moveShape(sh, dx, dy) {
     sh.x += dx;
     sh.y += dy;
   } else if (sh.type === "circle") {
+    sh.cx += dx;
+    sh.cy += dy;
+  } else if (sh.type === "ellipse") {
+    sh.cx += dx;
+    sh.cy += dy;
+  } else if (sh.type === "semicircle") {
     sh.cx += dx;
     sh.cy += dy;
   } else if (isPointsType(sh)) {

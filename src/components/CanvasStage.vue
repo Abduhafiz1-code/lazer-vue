@@ -180,6 +180,22 @@ function drawShape(sh, selected) {
   } else if (sh.type === "circle") {
     const c = worldToScreen(sh.cx, sh.cy);
     ctx.arc(c.x, c.y, sh.r * store.scale, 0, Math.PI * 2);
+  } else if (sh.type === "ellipse") {
+    const c = worldToScreen(sh.cx, sh.cy);
+    ctx.ellipse(
+      c.x,
+      c.y,
+      Math.max(1, sh.rx * store.scale),
+      Math.max(1, sh.ry * store.scale),
+      0,
+      0,
+      Math.PI * 2,
+    );
+  } else if (sh.type === "semicircle") {
+    const c = worldToScreen(sh.cx, sh.cy);
+    const start = sh.start ?? -Math.PI / 2;
+    const end = sh.end ?? Math.PI / 2;
+    ctx.arc(c.x, c.y, Math.max(1, sh.r * store.scale), start, end);
   } else if (isPointsType(sh)) {
     sh.points.forEach((p, i) => {
       const s = worldToScreen(p[0], p[1]);
@@ -231,6 +247,17 @@ function drawDimensions(sh) {
     drawDimText(top.x, top.y - 4, fmt(sh.w) + " mm", 0);
     drawDimText(left.x + 4, left.y, fmt(sh.h) + " mm", -Math.PI / 2);
   } else if (sh.type === "circle") {
+    const s = worldToScreen(sh.cx, sh.cy - sh.r);
+    drawDimText(s.x, s.y - 4, "r=" + fmt(sh.r) + " mm", 0);
+  } else if (sh.type === "ellipse") {
+    const s = worldToScreen(sh.cx, sh.cy - sh.ry);
+    drawDimText(
+      s.x,
+      s.y - 4,
+      "rx=" + fmt(sh.rx) + ", ry=" + fmt(sh.ry) + " mm",
+      0,
+    );
+  } else if (sh.type === "semicircle") {
     const s = worldToScreen(sh.cx, sh.cy - sh.r);
     drawDimText(s.x, s.y - 4, "r=" + fmt(sh.r) + " mm", 0);
   } else if (isPointsType(sh)) {
@@ -286,6 +313,30 @@ function drawPreview() {
         mouseWorld.value.y - drawing.cy,
       ) * store.scale;
     ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
+    ctx.stroke();
+    drawDimText(c.x, c.y - rad - 8, "r=" + fmt(rad / store.scale) + " mm", 0);
+  } else if (drawing.type === "ellipse") {
+    const c = worldToScreen(drawing.cx, drawing.cy);
+    const rx = Math.abs(mouseWorld.value.x - drawing.cx) * store.scale;
+    const ry = Math.abs(mouseWorld.value.y - drawing.cy) * store.scale;
+    ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    drawDimText(
+      c.x,
+      c.y - ry - 8,
+      "rx=" + fmt(rx / store.scale) + ", ry=" + fmt(ry / store.scale) + " mm",
+      0,
+    );
+  } else if (drawing.type === "semicircle") {
+    const c = worldToScreen(drawing.cx, drawing.cy);
+    const rad =
+      Math.hypot(
+        mouseWorld.value.x - drawing.cx,
+        mouseWorld.value.y - drawing.cy,
+      ) * store.scale;
+    const start = drawing.start ?? -Math.PI / 2;
+    const end = drawing.end ?? Math.PI / 2;
+    ctx.arc(c.x, c.y, rad, start, end);
     ctx.stroke();
     drawDimText(c.x, c.y - rad - 8, "r=" + fmt(rad / store.scale) + " mm", 0);
   } else if (drawing.type === "polyline") {
@@ -434,6 +485,26 @@ function hitTest(px, py) {
     } else if (sh.type === "circle") {
       const d = Math.hypot(w.x - sh.cx, w.y - sh.cy);
       if (Math.abs(d - sh.r) < tolMm + 2 || d < sh.r) return sh;
+    } else if (sh.type === "ellipse") {
+      const dx = w.x - sh.cx;
+      const dy = w.y - sh.cy;
+      const inside = (dx * dx) / (sh.rx * sh.rx) + (dy * dy) / (sh.ry * sh.ry);
+      if (
+        inside <=
+        1 + (tolMm * tolMm) / (Math.min(sh.rx, sh.ry) * Math.min(sh.rx, sh.ry))
+      )
+        return sh;
+    } else if (sh.type === "semicircle") {
+      const dx = w.x - sh.cx;
+      const dy = w.y - sh.cy;
+      const d = Math.hypot(dx, dy);
+      const start = sh.start ?? -Math.PI / 2;
+      const end = sh.end ?? Math.PI / 2;
+      const ang = Math.atan2(dy, dx);
+      const normalized = (ang - start + Math.PI * 2) % (Math.PI * 2);
+      const span = (end - start + Math.PI * 2) % (Math.PI * 2);
+      const insideArc = normalized <= span + 1e-6 || span >= Math.PI * 2 - 1e-6;
+      if (d <= sh.r + tolMm && insideArc) return sh;
     } else if (sh.type === "line") {
       if (distToSeg(w.x, w.y, sh.x1, sh.y1, sh.x2, sh.y2) < tolMm) return sh;
     } else if (isPointsType(sh)) {
@@ -603,6 +674,45 @@ function onDown(e) {
         cx: drawing.cx,
         cy: drawing.cy,
         r: store.snap(rad),
+      });
+      drawing = null;
+      finishShapeAndSelect();
+    }
+  } else if (store.tool === "ellipse") {
+    if (!drawing) drawing = { type: "ellipse", cx: wx, cy: wy };
+    else {
+      const rx = Math.max(0.1, Math.abs(wx - drawing.cx));
+      const ry = Math.max(0.1, Math.abs(wy - drawing.cy));
+      store.addShape({
+        type: "ellipse",
+        layer: store.currentLayer,
+        cx: drawing.cx,
+        cy: drawing.cy,
+        rx: store.snap(rx),
+        ry: store.snap(ry),
+      });
+      drawing = null;
+      finishShapeAndSelect();
+    }
+  } else if (store.tool === "semicircle") {
+    if (!drawing)
+      drawing = {
+        type: "semicircle",
+        cx: wx,
+        cy: wy,
+        start: -Math.PI / 2,
+        end: Math.PI / 2,
+      };
+    else {
+      const rad = Math.hypot(wx - drawing.cx, wy - drawing.cy);
+      store.addShape({
+        type: "semicircle",
+        layer: store.currentLayer,
+        cx: drawing.cx,
+        cy: drawing.cy,
+        r: store.snap(rad),
+        start: drawing.start,
+        end: drawing.end,
       });
       drawing = null;
       finishShapeAndSelect();

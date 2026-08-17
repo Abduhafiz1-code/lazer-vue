@@ -58,6 +58,38 @@
             :model-value="sh.r"
             @update:model-value="(v) => update('r', v)" />
         </template>
+        <template v-else-if="sh.type === 'ellipse'">
+          <Field
+            label="Markaz X (mm)"
+            :model-value="sh.cx"
+            @update:model-value="(v) => update('cx', v)" />
+          <Field
+            label="Markaz Y (mm)"
+            :model-value="sh.cy"
+            @update:model-value="(v) => update('cy', v)" />
+          <Field
+            label="X radius (mm)"
+            :model-value="sh.rx"
+            @update:model-value="(v) => update('rx', v)" />
+          <Field
+            label="Y radius (mm)"
+            :model-value="sh.ry"
+            @update:model-value="(v) => update('ry', v)" />
+        </template>
+        <template v-else-if="sh.type === 'semicircle'">
+          <Field
+            label="Markaz X (mm)"
+            :model-value="sh.cx"
+            @update:model-value="(v) => update('cx', v)" />
+          <Field
+            label="Markaz Y (mm)"
+            :model-value="sh.cy"
+            @update:model-value="(v) => update('cy', v)" />
+          <Field
+            label="Radius (mm)"
+            :model-value="sh.r"
+            @update:model-value="(v) => update('r', v)" />
+        </template>
         <template v-else-if="sh.type === 'polyline' || sh.type === 'path'">
           <div class="row">
             <label class="text-text2 text-xs">Nuqtalar soni</label
@@ -141,6 +173,8 @@ function typeLabel(t) {
       line: "Chiziq",
       rect: "To'rtburchak",
       circle: "Aylana",
+      ellipse: "Oval",
+      semicircle: "Yarim aylana",
       polyline: "Chiziq zanjiri",
       path: "Erkin shakl",
     }[t] || t
@@ -152,6 +186,9 @@ function desc(s) {
     return fmt(Math.hypot(s.x2 - s.x1, s.y2 - s.y1)) + " mm";
   if (s.type === "rect") return fmt(s.w) + "×" + fmt(s.h) + " mm";
   if (s.type === "circle") return "r=" + fmt(s.r) + " mm";
+  if (s.type === "ellipse")
+    return "rx=" + fmt(s.rx) + ", ry=" + fmt(s.ry) + " mm";
+  if (s.type === "semicircle") return "r=" + fmt(s.r) + " mm";
   return s.points.length + " nuqta";
 }
 

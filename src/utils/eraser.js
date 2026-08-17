@@ -181,16 +181,9 @@ export function eraseAt(shapes, cx, cy, radius, makeId) {
         });
       });
     } else {
-      const pieces = eraseOpenPath(points, cx, cy, radius);
-      pieces.forEach((pts, i) => {
-        out.push({
-          id: i === 0 ? sh.id : makeId(),
-          layer: sh.layer,
-          type: "path",
-          points: pts,
-          closed: false,
-        });
-      });
+      // For open lines, remove the entire touched segment cleanly so no ghost
+      // fragments remain after erasing.
+      continue;
     }
   }
   return out;
