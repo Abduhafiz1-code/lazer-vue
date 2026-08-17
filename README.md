@@ -3,7 +3,7 @@
 Lazer bilan kesish/gravировка qilish uchun mm-aniqlikdagi chizmachilik ilovasi.
 
 ## Texnologiyalar
-/test
+
 - Vue 3 (Composition API) + Vite
 - Vue Router — sahifalar orasida yurish (Kirish / Loyihalar / Muharrir)
 - Pinia — holatni boshqarish (auth, loyihalar ro'yxati, chizma holati)
@@ -90,3 +90,5 @@ npm run build
 `dist/` papkasini istalgan statik hosting'ga (Vercel, Netlify, Cloudflare Pages)
 joylashtiring va muhit o'zgaruvchilarini (`VITE_SUPABASE_URL`,
 `VITE_SUPABASE_ANON_KEY`) hosting sozlamalarida kiriting.
+
+I don't know
