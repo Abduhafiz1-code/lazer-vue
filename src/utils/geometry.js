@@ -146,6 +146,99 @@ export function regularPolygonPoints(cx, cy, r, sides) {
   return pts;
 }
 
+export function shapeCenter(sh) {
+  if (sh.type === "line") {
+    return { x: (sh.x1 + sh.x2) / 2, y: (sh.y1 + sh.y2) / 2 };
+  }
+  if (sh.type === "rect") {
+    return { x: sh.x + sh.w / 2, y: sh.y + sh.h / 2 };
+  }
+  if (
+    sh.type === "circle" ||
+    sh.type === "ellipse" ||
+    sh.type === "semicircle"
+  ) {
+    return { x: sh.cx, y: sh.cy };
+  }
+  if (isPointsType(sh)) {
+    const total = sh.points.reduce(
+      (acc, p) => {
+        acc.x += p[0];
+        acc.y += p[1];
+        return acc;
+      },
+      { x: 0, y: 0 },
+    );
+    const len = Math.max(1, sh.points.length);
+    return { x: total.x / len, y: total.y / len };
+  }
+  return { x: 0, y: 0 };
+}
+
+export function rotatePointAround(x, y, cx, cy, angle) {
+  const dx = x - cx;
+  const dy = y - cy;
+  return {
+    x: cx + dx * Math.cos(angle) - dy * Math.sin(angle),
+    y: cy + dx * Math.sin(angle) + dy * Math.cos(angle),
+  };
+}
+
+export function rotateShape(sh, angle, cx, cy) {
+  const clone = cloneShape(sh);
+  if (sh.type === "line") {
+    const a1 = rotatePointAround(sh.x1, sh.y1, cx, cy, angle);
+    const a2 = rotatePointAround(sh.x2, sh.y2, cx, cy, angle);
+    clone.x1 = a1.x;
+    clone.y1 = a1.y;
+    clone.x2 = a2.x;
+    clone.y2 = a2.y;
+    return clone;
+  }
+  if (sh.type === "rect") {
+    const pts = [
+      [sh.x, sh.y],
+      [sh.x + sh.w, sh.y],
+      [sh.x + sh.w, sh.y + sh.h],
+      [sh.x, sh.y + sh.h],
+    ].map(([px, py]) => {
+      const p = rotatePointAround(px, py, cx, cy, angle);
+      return [p.x, p.y];
+    });
+    return { ...clone, type: "path", points: pts, closed: true };
+  }
+  if (sh.type === "circle") return clone;
+  if (sh.type === "ellipse") {
+    return clone;
+  }
+  if (sh.type === "semicircle") {
+    const pts = [];
+    const start = sh.start ?? -Math.PI / 2;
+    const end = sh.end ?? Math.PI / 2;
+    const segs = 40;
+    for (let i = 0; i <= segs; i++) {
+      const a = start + ((end - start) * i) / segs;
+      const p = rotatePointAround(
+        sh.cx + Math.cos(a) * sh.r,
+        sh.cy + Math.sin(a) * sh.r,
+        cx,
+        cy,
+        angle,
+      );
+      pts.push([p.x, p.y]);
+    }
+    return { ...clone, type: "path", points: pts, closed: false };
+  }
+  if (isPointsType(sh)) {
+    clone.points = sh.points.map(([px, py]) => {
+      const p = rotatePointAround(px, py, cx, cy, angle);
+      return [p.x, p.y];
+    });
+    return clone;
+  }
+  return clone;
+}
+
 // Convert ANY shape into a generic { points, closed } outline. This is what
 // lets a rect or circle become a freely-editable point-by-point path (so a
 // square's corner can be dragged round, etc.) and is also how the eraser

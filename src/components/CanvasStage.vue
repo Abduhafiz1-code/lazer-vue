@@ -53,6 +53,8 @@ import {
   pointInPolygon,
   regularPolygonPoints,
   isPointsType,
+  shapeCenter,
+  rotateShape,
 } from "../utils/geometry";
 import { computeGuides } from "../utils/guides";
 
@@ -165,6 +167,16 @@ function shapeColor(sh) {
   return LAYER_COLOR[sh.layer] || "#ccc";
 }
 
+function getRotateHandle(sh) {
+  const center = shapeCenter(sh);
+  const bounds = shapeBounds(sh);
+  const radius = Math.max(
+    15,
+    (Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 2) * 1.2,
+  );
+  return { x: center.x, y: center.y - radius };
+}
+
 function drawShape(sh, selected) {
   ctx.strokeStyle = shapeColor(sh);
   ctx.lineWidth = selected ? 2.5 : 1.5;
@@ -206,6 +218,17 @@ function drawShape(sh, selected) {
   }
   ctx.stroke();
   if (selected) {
+    const center = worldToScreen(shapeCenter(sh).x, shapeCenter(sh).y);
+    const handle = worldToScreen(getRotateHandle(sh).x, getRotateHandle(sh).y);
+    ctx.strokeStyle = "#8b5cf6";
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y);
+    ctx.lineTo(handle.x, handle.y);
+    ctx.stroke();
+    ctx.fillStyle = "#8b5cf6";
+    ctx.beginPath();
+    ctx.arc(handle.x, handle.y, 5, 0, Math.PI * 2);
+    ctx.fill();
     getHandles(sh).forEach((h) => {
       const s = worldToScreen(h.x, h.y);
       ctx.fillStyle = h.resize ? "#e07a3f" : shapeColor(sh);
@@ -557,6 +580,13 @@ function hitHandle(px, py) {
   return null;
 }
 
+function hitRotateHandle(px, py) {
+  const sh = store.selectedShape;
+  if (!sh) return false;
+  const h = worldToScreen(getRotateHandle(sh).x, getRotateHandle(sh).y);
+  return Math.hypot(h.x - px, h.y - py) <= 10;
+}
+
 function onDown(e) {
   const m = getMousePos(e);
   if (store.tool === "pan" || e.button === 1) {
@@ -585,6 +615,18 @@ function onDown(e) {
         id: store.selectedShape.id,
         handleIndex: handle.index,
         orig: cloneShape(store.selectedShape),
+      };
+      return;
+    }
+    if (hitRotateHandle(m.x, m.y) && store.selectedShape) {
+      const center = shapeCenter(store.selectedShape);
+      const ang = Math.atan2(w.y - center.y, w.x - center.x);
+      dragState = {
+        mode: "rotate",
+        id: store.selectedShape.id,
+        orig: cloneShape(store.selectedShape),
+        center,
+        startAngle: ang,
       };
       return;
     }
@@ -851,6 +893,14 @@ function onMove(e) {
         store.snap(w.y),
       );
       Object.assign(sh, fresh);
+      store.dirty = true;
+    } else if (dragState.mode === "rotate") {
+      const center = dragState.center;
+      const angle =
+        Math.atan2(w.y - center.y, w.x - center.x) - dragState.startAngle;
+      const rotated = rotateShape(dragState.orig, angle, center.x, center.y);
+      rotated.id = sh.id;
+      Object.assign(sh, rotated);
       store.dirty = true;
     }
     render();
