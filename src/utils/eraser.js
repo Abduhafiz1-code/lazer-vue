@@ -192,19 +192,58 @@ export function eraseAt(shapes, cx, cy, radius, makeId) {
 // Erase along a stroke from (x1,y1) to (x2,y2), sampling intermediate points
 // so a fast mouse drag doesn't leave un-erased gaps.
 export function eraseAlong(shapes, x1, y1, x2, y2, radius, makeId) {
-  const dist = Math.hypot(x2 - x1, y2 - y1);
-  const step = Math.max(radius * 0.5, 0.25);
-  const steps = Math.max(1, Math.ceil(dist / step));
-  let result = shapes;
-  for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    result = eraseAt(
-      result,
-      x1 + (x2 - x1) * t,
-      y1 + (y2 - y1) * t,
-      radius,
-      makeId,
-    );
+  const out = [];
+  const stroke = { x1, y1, x2, y2, r: radius };
+
+  for (const sh of shapes) {
+    const { points, closed } = shapeToPoints(sh, 12);
+    if (!points || points.length < 2) {
+      out.push(sh);
+      continue;
+    }
+
+    const kept = [];
+    let hitAny = false;
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const d = distToSeg(
+        p[0],
+        p[1],
+        stroke.x1,
+        stroke.y1,
+        stroke.x2,
+        stroke.y2,
+      );
+      if (d <= stroke.r) {
+        hitAny = true;
+        continue;
+      }
+      kept.push(p);
+    }
+
+    if (!hitAny) {
+      out.push(sh);
+      continue;
+    }
+
+    if (closed) {
+      if (kept.length >= 3) {
+        out.push({
+          ...sh,
+          id: sh.id,
+          points: kept,
+          closed: true,
+          type: "path",
+        });
+      }
+      continue;
+    }
+
+    if (kept.length >= 2) {
+      out.push({ ...sh, id: sh.id, points: kept, closed: false, type: "path" });
+    }
   }
-  return result;
+
+  return out;
 }

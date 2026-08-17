@@ -101,7 +101,7 @@ export function rectPoints(x, y, w, h) {
   ];
 }
 
-export function circlePoints(cx, cy, r, segments = 48) {
+export function circlePoints(cx, cy, r, segments = 12) {
   const pts = [];
   for (let i = 0; i < segments; i++) {
     const a = (i / segments) * Math.PI * 2;
@@ -110,7 +110,7 @@ export function circlePoints(cx, cy, r, segments = 48) {
   return pts;
 }
 
-export function ellipsePoints(cx, cy, rx, ry, segments = 48) {
+export function ellipsePoints(cx, cy, rx, ry, segments = 12) {
   const pts = [];
   for (let i = 0; i < segments; i++) {
     const a = (i / segments) * Math.PI * 2;
@@ -125,7 +125,7 @@ export function semiCirclePoints(
   r,
   start = -Math.PI / 2,
   end = Math.PI / 2,
-  segments = 48,
+  segments = 12,
 ) {
   const pts = [];
   const total = end - start;
@@ -235,7 +235,7 @@ export function rotateShape(sh, angle, cx, cy) {
 // lets a rect or circle become a freely-editable point-by-point path (so a
 // square's corner can be dragged round, etc.) and is also how the eraser
 // works on every shape type uniformly.
-export function shapeToPoints(sh, circleSegments = 48) {
+export function shapeToPoints(sh, circleSegments = 12) {
   if (sh.type === "line")
     return {
       points: [

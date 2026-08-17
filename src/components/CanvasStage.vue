@@ -598,6 +598,22 @@ function hitRotateHandle(px, py) {
   return Math.hypot(h.x - px, h.y - py) <= 10;
 }
 
+function hitPathVertex(px, py, sh) {
+  if (!sh || !isPointsType(sh)) return null;
+  const tolPx = 8;
+  let best = null;
+  let bestDist = Infinity;
+  for (let i = 0; i < sh.points.length; i++) {
+    const p = worldToScreen(sh.points[i][0], sh.points[i][1]);
+    const d = Math.hypot(p.x - px, p.y - py);
+    if (d <= tolPx && d < bestDist) {
+      bestDist = d;
+      best = { index: i };
+    }
+  }
+  return best;
+}
+
 function onDown(e) {
   const m = getMousePos(e);
   if (store.tool === "pan" || e.button === 1) {
@@ -639,6 +655,44 @@ function onDown(e) {
         center,
         startAngle: ang,
       };
+      return;
+    }
+    if (
+      store.selectedShape &&
+      (store.selectedShape.type === "circle" ||
+        store.selectedShape.type === "ellipse" ||
+        store.selectedShape.type === "semicircle")
+    ) {
+      const pathSh = cloneShape(store.selectedShape);
+      store.convertToPath(store.selectedShape.id);
+      const sh = store.selectedShape;
+      if (sh && sh.points) {
+        const hitPoint = hitPathVertex(m.x, m.y, sh);
+        if (hitPoint) {
+          dragState = {
+            mode: "path-edit",
+            id: sh.id,
+            orig: cloneShape(sh),
+            pointIndex: hitPoint.index,
+            startWorld: w,
+          };
+          return;
+        }
+      }
+      const hit = hitTest(m.x, m.y);
+      if (hit) {
+        store.selectShape(hit.id);
+        dragState = {
+          mode: "move",
+          id: hit.id,
+          orig: cloneShape(hit),
+          startWorld: w,
+        };
+      } else {
+        store.selectShape(null);
+        dragState = null;
+      }
+      render();
       return;
     }
     const hit = hitTest(m.x, m.y);
@@ -911,6 +965,12 @@ function onMove(e) {
       const rotated = rotateShape(dragState.orig, angle, center.x, center.y);
       rotated.id = sh.id;
       Object.assign(sh, rotated);
+      store.dirty = true;
+    } else if (dragState.mode === "path-edit" && sh.points) {
+      const fresh = cloneShape(dragState.orig);
+      fresh.id = sh.id;
+      fresh.points[dragState.pointIndex] = [store.snap(w.x), store.snap(w.y)];
+      Object.assign(sh, fresh);
       store.dirty = true;
     }
     render();
