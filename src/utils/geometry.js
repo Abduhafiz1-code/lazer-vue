@@ -212,22 +212,14 @@ export function rotateShape(sh, angle, cx, cy) {
     return clone;
   }
   if (sh.type === "semicircle") {
-    const pts = [];
     const start = sh.start ?? -Math.PI / 2;
     const end = sh.end ?? Math.PI / 2;
-    const segs = 40;
-    for (let i = 0; i <= segs; i++) {
-      const a = start + ((end - start) * i) / segs;
-      const p = rotatePointAround(
-        sh.cx + Math.cos(a) * sh.r,
-        sh.cy + Math.sin(a) * sh.r,
-        cx,
-        cy,
-        angle,
-      );
-      pts.push([p.x, p.y]);
-    }
-    return { ...clone, type: "path", points: pts, closed: false };
+    return {
+      ...clone,
+      type: "semicircle",
+      start: start + angle,
+      end: end + angle,
+    };
   }
   if (isPointsType(sh)) {
     clone.points = sh.points.map(([px, py]) => {

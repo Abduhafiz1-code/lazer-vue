@@ -153,14 +153,14 @@ export const useCanvasStore = defineStore("canvas", {
 
     // --- Eraser: cuts real holes/gaps into shapes, no matter the type ---
     eraseAt(x, y) {
-      const radius = this.eraserSize / 2;
+      const radius = Math.max(0.2, this.eraserSize / 8);
       this.shapes = eraseAt(this.shapes, x, y, radius, newId);
       if (this.selectedId && !this.shapes.find((s) => s.id === this.selectedId))
         this.selectedId = null;
       this.dirty = true;
     },
     eraseAlong(x1, y1, x2, y2) {
-      const radius = this.eraserSize / 2;
+      const radius = Math.max(0.2, this.eraserSize / 10);
       this.shapes = eraseAlong(this.shapes, x1, y1, x2, y2, radius, newId);
       if (this.selectedId && !this.shapes.find((s) => s.id === this.selectedId))
         this.selectedId = null;

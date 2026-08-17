@@ -36,19 +36,6 @@
       {{ t.icon }}
     </button>
 
-    <div v-if="store.tool === 'eraser'" class="flex items-center gap-1.5 pl-1">
-      <span class="text-[11px] text-text2">O'chirg'ich:</span>
-      <input
-        type="range"
-        min="1"
-        max="40"
-        step="0.5"
-        v-model.number="store.eraserSize"
-        class="w-20" />
-      <span class="text-[11px] text-text2 font-mono w-9"
-        >{{ store.eraserSize }}mm</span
-      >
-    </div>
     <div v-if="store.tool === 'polygon'" class="flex items-center gap-1.5 pl-1">
       <span class="text-[11px] text-text2">Burchaklar:</span>
       <input
@@ -154,7 +141,7 @@ const tools = [
   {
     id: "eraser",
     icon: "⌫",
-    label: "O'chirg'ich — istalgan qismini o'chiradi (E)",
+    label: "Yo'q qilish chizig'i — boshlab chizilgan masofani o'chiradi (E)",
   },
   { id: "pan", icon: "✥", label: "Surish (Space)" },
 ];

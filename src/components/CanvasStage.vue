@@ -90,7 +90,7 @@ const hint = computed(() => {
   if (store.tool === "polygon")
     return "Markazni bosing, keyin tortib o'lchamini belgilang";
   if (store.tool === "eraser")
-    return "Bosib torting: chizilgan narsaning istalgan qismini o'chiring";
+    return "Bosib torting: chizilgan yo'l bo'ylab masofani o'chirish";
   return "Bosib torting, keyin qo'yib yuboring";
 });
 
@@ -402,19 +402,30 @@ function drawPreview() {
 }
 
 function drawEraserCursor() {
-  const c = worldToScreen(mouseWorld.value.x, mouseWorld.value.y);
+  if (!erasing) {
+    const c = worldToScreen(mouseWorld.value.x, mouseWorld.value.y);
+    ctx.save();
+    ctx.strokeStyle = "#e07a3f";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(c.x - 6, c.y);
+    ctx.lineTo(c.x + 6, c.y);
+    ctx.moveTo(c.x, c.y - 6);
+    ctx.lineTo(c.x, c.y + 6);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  const a = worldToScreen(erasing.startX, erasing.startY);
+  const b = worldToScreen(mouseWorld.value.x, mouseWorld.value.y);
   ctx.save();
   ctx.strokeStyle = "#e07a3f";
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([3, 3]);
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
-  ctx.arc(
-    c.x,
-    c.y,
-    Math.max(2, (store.eraserSize / 2) * store.scale),
-    0,
-    Math.PI * 2,
-  );
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
@@ -647,8 +658,7 @@ function onDown(e) {
     return;
   }
   if (store.tool === "eraser") {
-    erasing = { lastX: wx, lastY: wy };
-    store.eraseAt(wx, wy);
+    erasing = { startX: wx, startY: wy, lastX: wx, lastY: wy };
     render();
     return;
   }
