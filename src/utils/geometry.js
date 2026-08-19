@@ -170,6 +170,34 @@ export function starPoints(cx, cy, outerRadius, innerRadius, points = 5) {
   return result;
 }
 
+export const SHAPE_PRESETS = [
+  { id: "triangle", label: "Uchburchak" },
+  { id: "square", label: "Kvadrat" },
+  { id: "pentagon", label: "Beshburchak" },
+  { id: "hexagon", label: "Olti burchak" },
+  { id: "heptagon", label: "Yetti burchak" },
+  { id: "octagon", label: "Sakkiz burchak" },
+  { id: "nonagon", label: "To'qqiz burchak" },
+  { id: "decagon", label: "O'n burchak" },
+  { id: "dodecagon", label: "O'n ikki burchak" },
+  { id: "diamond", label: "Romb" },
+  { id: "triangleRight", label: "To'g'ri uchburchak" },
+  { id: "trapezoid", label: "Trapetsiya" },
+  { id: "parallelogram", label: "Parallelogramma" },
+  { id: "star", label: "Besh qirrali yulduz" },
+  { id: "star6", label: "Olti qirrali yulduz" },
+  { id: "cross", label: "Krest" },
+  { id: "arrow", label: "Strelka" },
+  { id: "heart", label: "Yurak" },
+  { id: "shield", label: "Qalqon" },
+  { id: "octagonRound", label: "Yumaloq sakkizburchak" },
+  { id: "gear", label: "Tishli g'ildirak" },
+  { id: "bracket", label: "Texnik kronshteyn" },
+  { id: "bolt", label: "Chaqmoq" },
+  { id: "cloud", label: "Bulut konturi" },
+  { id: "arch", label: "Arka" },
+];
+
 export function presetPoints(cx, cy, radius, preset) {
   const sideMap = {
     triangle: 3,
@@ -257,6 +285,60 @@ export function presetPoints(cx, cy, radius, preset) {
       [cx + radius, cy + radius * 0.35],
     ];
   if (preset === "octagonRound") return regularPolygonPoints(cx, cy, radius, 8);
+  if (preset === "gear") {
+    const result = [];
+    const teeth = 10;
+    for (let i = 0; i < teeth * 2; i++) {
+      const angle = -Math.PI / 2 + (i / (teeth * 2)) * Math.PI * 2;
+      const r = i % 2 === 0 ? radius : radius * 0.72;
+      result.push([cx + Math.cos(angle) * r, cy + Math.sin(angle) * r]);
+    }
+    return result;
+  }
+  if (preset === "bracket")
+    return [
+      [cx - radius, cy - radius],
+      [cx - radius * 0.45, cy - radius],
+      [cx - radius * 0.45, cy + radius * 0.45],
+      [cx + radius, cy + radius * 0.45],
+      [cx + radius, cy + radius],
+      [cx - radius, cy + radius],
+    ];
+  if (preset === "bolt")
+    return [
+      [cx - radius * 0.15, cy - radius],
+      [cx + radius * 0.6, cy - radius * 0.15],
+      [cx + radius * 0.15, cy - radius * 0.15],
+      [cx + radius * 0.35, cy + radius],
+      [cx - radius * 0.6, cy + radius * 0.05],
+      [cx - radius * 0.1, cy + radius * 0.05],
+    ];
+  if (preset === "cloud") {
+    const result = [];
+    for (let i = 0; i <= 16; i++) {
+      const a = Math.PI + (i / 16) * Math.PI;
+      result.push([
+        cx + Math.cos(a) * radius,
+        cy + Math.sin(a) * radius * 0.45,
+      ]);
+    }
+    result.push(
+      [cx - radius, cy + radius * 0.45],
+      [cx + radius, cy + radius * 0.45],
+    );
+    return result;
+  }
+  if (preset === "arch") {
+    const result = [];
+    for (let i = 0; i <= 12; i++) {
+      const a = Math.PI + (i / 12) * Math.PI;
+      result.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
+    }
+    return result.concat([
+      [cx + radius, cy + radius],
+      [cx - radius, cy + radius],
+    ]);
+  }
   return regularPolygonPoints(cx, cy, radius, sideMap[preset] || 6);
 }
 

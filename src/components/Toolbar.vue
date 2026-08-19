@@ -142,6 +142,7 @@
 
 <script setup>
 import { useCanvasStore } from "../stores/canvas";
+import { SHAPE_PRESETS } from "../utils/geometry";
 
 defineProps({ saving: Boolean });
 defineEmits(["save", "delete", "zoom-fit", "export-svg", "export-dxf"]);
@@ -166,28 +167,7 @@ const tools = [
   { id: "pan", icon: "✥", label: "Surish (Space)" },
 ];
 
-const presets = [
-  { id: "triangle", label: "Uchburchak" },
-  { id: "square", label: "Kvadrat" },
-  { id: "pentagon", label: "Beshburchak" },
-  { id: "hexagon", label: "Olti burchak" },
-  { id: "heptagon", label: "Yetti burchak" },
-  { id: "octagon", label: "Sakkiz burchak" },
-  { id: "nonagon", label: "To'qqiz burchak" },
-  { id: "decagon", label: "O'n burchak" },
-  { id: "dodecagon", label: "O'n ikki burchak" },
-  { id: "diamond", label: "Romb" },
-  { id: "triangleRight", label: "To'g'ri uchburchak" },
-  { id: "trapezoid", label: "Trapetsiya" },
-  { id: "parallelogram", label: "Parallelogramma" },
-  { id: "star", label: "Besh qirrali yulduz" },
-  { id: "star6", label: "Olti qirrali yulduz" },
-  { id: "cross", label: "Krest" },
-  { id: "arrow", label: "Strelka" },
-  { id: "heart", label: "Yurak" },
-  { id: "shield", label: "Qalqon" },
-  { id: "octagonRound", label: "Yumaloq sakkizburchak" },
-];
+const presets = SHAPE_PRESETS;
 
 const layers = [
   { id: "cut", color: "#e0413f", label: "Kesish" },

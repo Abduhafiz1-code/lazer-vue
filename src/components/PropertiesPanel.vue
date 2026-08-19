@@ -7,24 +7,7 @@
       </div>
       <div v-else>
         <p class="text-xs text-text2 mb-2">{{ typeLabel(sh.type) }}</p>
-        <div v-if="store.suggestionsOn" class="suggestions">
-          <strong>Auto tavsiya</strong>
-          <span v-if="sh.type === 'rect'"
-            >Burchaklarni tekis saqlang yoki kenglik/balandlikni tenglab kvadrat
-            qiling.</span
-          >
-          <span v-else-if="sh.type === 'circle'"
-            >Radiusni o'zgartiring, shaklni erkin path'ga aylantirish
-            yopiq.</span
-          >
-          <span v-else-if="sh.type === 'ellipse'"
-            >X va Y radiusini alohida o'zgartirib, oval nisbatini
-            boshqaring.</span
-          >
-          <span v-else
-            >Markazni siljiting yoki parametr o'lchamini o'zgartiring.</span
-          >
-        </div>
+        <ShapeSuggestions />
 
         <template v-if="sh.type === 'line'">
           <Field
@@ -186,6 +169,7 @@
 import { computed, h } from "vue";
 import { useCanvasStore } from "../stores/canvas";
 import { LAYER_COLOR, fmt } from "../utils/geometry";
+import ShapeSuggestions from "./ShapeSuggestions.vue";
 
 const store = useCanvasStore();
 const sh = computed(() => store.selectedShape);
@@ -255,23 +239,6 @@ const Field = {
 }
 .row {
   @apply flex items-center justify-between mb-2 gap-2;
-}
-.suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin: 0 0 12px;
-  padding: 8px;
-  border-left: 2px solid #e07a3f;
-  background: #292c2f;
-  color: #c8cbc5;
-  font-size: 11px;
-  line-height: 1.4;
-}
-.suggestions strong {
-  color: #e07a3f;
-  font-size: 10px;
-  text-transform: uppercase;
 }
 .num-input {
   width: 90px;

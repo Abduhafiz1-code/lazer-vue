@@ -5,6 +5,7 @@ import {
   cloneShape,
   shapeToPoints,
   shapeBounds,
+  presetPoints,
 } from "../utils/geometry";
 import { eraseAt, eraseAlong } from "../utils/eraser";
 
@@ -89,6 +90,19 @@ export const useCanvasStore = defineStore("canvas", {
       this.shapes.push(data);
       this.selectedId = data.id;
       this._commit();
+    },
+    addPresetShape(preset) {
+      const selected = this.selectedShape;
+      const bounds = selected ? shapeBounds(selected) : null;
+      const cx = bounds ? bounds.maxX + 35 : 60;
+      const cy = bounds ? (bounds.minY + bounds.maxY) / 2 : 60;
+      this.addShape({
+        type: "path",
+        layer: this.currentLayer,
+        points: presetPoints(cx, cy, 18, preset),
+        closed: true,
+        preset,
+      });
     },
     updateShape(id, patch) {
       const sh = this.shapes.find((s) => s.id === id);
