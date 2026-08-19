@@ -11,102 +11,102 @@
 
         <template v-if="sh.type === 'line'">
           <Field
-            label="X1 (mm)"
-            :model-value="sh.x1"
+            :label="`X1 (${store.unitLabel})`"
+            :model-value="unitValue(sh.x1)"
             @update:model-value="(v) => update('x1', v)" />
           <Field
-            label="Y1 (mm)"
-            :model-value="sh.y1"
+            :label="`Y1 (${store.unitLabel})`"
+            :model-value="unitValue(sh.y1)"
             @update:model-value="(v) => update('y1', v)" />
           <Field
-            label="X2 (mm)"
-            :model-value="sh.x2"
+            :label="`X2 (${store.unitLabel})`"
+            :model-value="unitValue(sh.x2)"
             @update:model-value="(v) => update('x2', v)" />
           <Field
-            label="Y2 (mm)"
-            :model-value="sh.y2"
+            :label="`Y2 (${store.unitLabel})`"
+            :model-value="unitValue(sh.y2)"
             @update:model-value="(v) => update('y2', v)" />
         </template>
         <template v-else-if="sh.type === 'rect'">
           <Field
-            label="X (mm)"
-            :model-value="sh.x"
+            :label="`X (${store.unitLabel})`"
+            :model-value="unitValue(sh.x)"
             @update:model-value="(v) => update('x', v)" />
           <Field
-            label="Y (mm)"
-            :model-value="sh.y"
+            :label="`Y (${store.unitLabel})`"
+            :model-value="unitValue(sh.y)"
             @update:model-value="(v) => update('y', v)" />
           <Field
-            label="Kenglik (mm)"
-            :model-value="sh.w"
+            :label="`Kenglik (${store.unitLabel})`"
+            :model-value="unitValue(sh.w)"
             @update:model-value="(v) => update('w', v)" />
           <Field
-            label="Balandlik (mm)"
-            :model-value="sh.h"
+            :label="`Balandlik (${store.unitLabel})`"
+            :model-value="unitValue(sh.h)"
             @update:model-value="(v) => update('h', v)" />
         </template>
         <template v-else-if="sh.type === 'circle'">
           <Field
-            label="Markaz X (mm)"
-            :model-value="sh.cx"
+            :label="`Markaz X (${store.unitLabel})`"
+            :model-value="unitValue(sh.cx)"
             @update:model-value="(v) => update('cx', v)" />
           <Field
-            label="Markaz Y (mm)"
-            :model-value="sh.cy"
+            :label="`Markaz Y (${store.unitLabel})`"
+            :model-value="unitValue(sh.cy)"
             @update:model-value="(v) => update('cy', v)" />
           <Field
-            label="Radius (mm)"
-            :model-value="sh.r"
+            :label="`Radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.r)"
             @update:model-value="(v) => update('r', v)" />
         </template>
         <template v-else-if="sh.type === 'ellipse'">
           <Field
-            label="Markaz X (mm)"
-            :model-value="sh.cx"
+            :label="`Markaz X (${store.unitLabel})`"
+            :model-value="unitValue(sh.cx)"
             @update:model-value="(v) => update('cx', v)" />
           <Field
-            label="Markaz Y (mm)"
-            :model-value="sh.cy"
+            :label="`Markaz Y (${store.unitLabel})`"
+            :model-value="unitValue(sh.cy)"
             @update:model-value="(v) => update('cy', v)" />
           <Field
-            label="X radius (mm)"
-            :model-value="sh.rx"
+            :label="`X radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.rx)"
             @update:model-value="(v) => update('rx', v)" />
           <Field
-            label="Y radius (mm)"
-            :model-value="sh.ry"
+            :label="`Y radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.ry)"
             @update:model-value="(v) => update('ry', v)" />
         </template>
         <template v-else-if="sh.type === 'semicircle'">
           <Field
-            label="Markaz X (mm)"
-            :model-value="sh.cx"
+            :label="`Markaz X (${store.unitLabel})`"
+            :model-value="unitValue(sh.cx)"
             @update:model-value="(v) => update('cx', v)" />
           <Field
-            label="Markaz Y (mm)"
-            :model-value="sh.cy"
+            :label="`Markaz Y (${store.unitLabel})`"
+            :model-value="unitValue(sh.cy)"
             @update:model-value="(v) => update('cy', v)" />
           <Field
-            label="Radius (mm)"
-            :model-value="sh.r"
+            :label="`Radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.r)"
             @update:model-value="(v) => update('r', v)" />
         </template>
         <template v-else-if="sh.type === 'semiellipse'">
           <Field
-            label="Markaz X (mm)"
-            :model-value="sh.cx"
+            :label="`Markaz X (${store.unitLabel})`"
+            :model-value="unitValue(sh.cx)"
             @update:model-value="(v) => update('cx', v)" />
           <Field
-            label="Markaz Y (mm)"
-            :model-value="sh.cy"
+            :label="`Markaz Y (${store.unitLabel})`"
+            :model-value="unitValue(sh.cy)"
             @update:model-value="(v) => update('cy', v)" />
           <Field
-            label="X radius (mm)"
-            :model-value="sh.rx"
+            :label="`X radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.rx)"
             @update:model-value="(v) => update('rx', v)" />
           <Field
-            label="Y radius (mm)"
-            :model-value="sh.ry"
+            :label="`Y radius (${store.unitLabel})`"
+            :model-value="unitValue(sh.ry)"
             @update:model-value="(v) => update('ry', v)" />
         </template>
         <template v-else-if="sh.type === 'polyline' || sh.type === 'path'">
@@ -168,7 +168,12 @@
 <script setup>
 import { computed, h } from "vue";
 import { useCanvasStore } from "../stores/canvas";
-import { LAYER_COLOR, fmt } from "../utils/geometry";
+import {
+  LAYER_COLOR,
+  formatUnit,
+  unitFactor,
+  unitValue,
+} from "../utils/geometry";
 import ShapeSuggestions from "./ShapeSuggestions.vue";
 
 const store = useCanvasStore();
@@ -176,7 +181,10 @@ const sh = computed(() => store.selectedShape);
 
 function update(key, value) {
   if (!sh.value) return;
-  const v = typeof value === "boolean" ? value : parseFloat(value) || 0;
+  const v =
+    typeof value === "boolean"
+      ? value
+      : (parseFloat(value) || 0) * unitFactor(store.unit);
   store.updateShape(sh.value.id, { [key]: v });
 }
 
@@ -201,14 +209,25 @@ function typeLabel(t) {
 
 function desc(s) {
   if (s.type === "line")
-    return fmt(Math.hypot(s.x2 - s.x1, s.y2 - s.y1)) + " mm";
-  if (s.type === "rect") return fmt(s.w) + "×" + fmt(s.h) + " mm";
-  if (s.type === "circle") return "r=" + fmt(s.r) + " mm";
+    return formatUnit(Math.hypot(s.x2 - s.x1, s.y2 - s.y1), store.unit);
+  if (s.type === "rect")
+    return formatUnit(s.w, store.unit) + "×" + formatUnit(s.h, store.unit);
+  if (s.type === "circle") return "r=" + formatUnit(s.r, store.unit);
   if (s.type === "ellipse")
-    return "rx=" + fmt(s.rx) + ", ry=" + fmt(s.ry) + " mm";
-  if (s.type === "semicircle") return "r=" + fmt(s.r) + " mm";
+    return (
+      "rx=" +
+      formatUnit(s.rx, store.unit) +
+      ", ry=" +
+      formatUnit(s.ry, store.unit)
+    );
+  if (s.type === "semicircle") return "r=" + formatUnit(s.r, store.unit);
   if (s.type === "semiellipse")
-    return "rx=" + fmt(s.rx) + ", ry=" + fmt(s.ry) + " mm";
+    return (
+      "rx=" +
+      formatUnit(s.rx, store.unit) +
+      ", ry=" +
+      formatUnit(s.ry, store.unit)
+    );
   return s.points.length + " nuqta";
 }
 

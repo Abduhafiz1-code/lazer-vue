@@ -13,7 +13,8 @@
       @wheel.prevent="onWheel"></canvas>
     <div
       class="absolute bottom-2.5 left-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md pointer-events-none">
-      X: {{ fmt(mouseWorld.x) }} mm &nbsp; Y: {{ fmt(mouseWorld.y) }} mm
+      X: {{ formatUnit(mouseWorld.x, store.unit) }} &nbsp; Y:
+      {{ formatUnit(mouseWorld.y, store.unit) }}
     </div>
     <div
       class="absolute bottom-2.5 right-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md flex items-center gap-2">
@@ -43,7 +44,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { useCanvasStore } from "../stores/canvas";
 import {
   LAYER_COLOR,
-  fmt,
+  formatUnit,
   getHandles,
   distToSeg,
   shapeBounds,
@@ -277,26 +278,29 @@ function drawDimensions(sh) {
       my = (sh.y1 + sh.y2) / 2;
     const s = worldToScreen(mx, my);
     const ang = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
-    drawDimText(s.x, s.y, fmt(len) + " mm", ang);
+    drawDimText(s.x, s.y, formatUnit(len, store.unit), ang);
   } else if (sh.type === "rect") {
     const top = worldToScreen(sh.x + sh.w / 2, sh.y);
     const left = worldToScreen(sh.x, sh.y + sh.h / 2);
-    drawDimText(top.x, top.y - 4, fmt(sh.w) + " mm", 0);
-    drawDimText(left.x + 4, left.y, fmt(sh.h) + " mm", -Math.PI / 2);
+    drawDimText(top.x, top.y - 4, formatUnit(sh.w, store.unit), 0);
+    drawDimText(left.x + 4, left.y, formatUnit(sh.h, store.unit), -Math.PI / 2);
   } else if (sh.type === "circle") {
     const s = worldToScreen(sh.cx, sh.cy - sh.r);
-    drawDimText(s.x, s.y - 4, "r=" + fmt(sh.r) + " mm", 0);
+    drawDimText(s.x, s.y - 4, "r=" + formatUnit(sh.r, store.unit), 0);
   } else if (sh.type === "ellipse") {
     const s = worldToScreen(sh.cx, sh.cy - sh.ry);
     drawDimText(
       s.x,
       s.y - 4,
-      "rx=" + fmt(sh.rx) + ", ry=" + fmt(sh.ry) + " mm",
+      "rx=" +
+        formatUnit(sh.rx, store.unit) +
+        ", ry=" +
+        formatUnit(sh.ry, store.unit),
       0,
     );
   } else if (sh.type === "semicircle") {
     const s = worldToScreen(sh.cx, sh.cy - sh.r);
-    drawDimText(s.x, s.y - 4, "r=" + fmt(sh.r) + " mm", 0);
+    drawDimText(s.x, s.y - 4, "r=" + formatUnit(sh.r, store.unit), 0);
   } else if (isPointsType(sh)) {
     for (let i = 0; i < sh.points.length - 1; i++) {
       const [x1, y1] = sh.points[i],
@@ -306,7 +310,7 @@ function drawDimensions(sh) {
         my = (y1 + y2) / 2;
       const s = worldToScreen(mx, my);
       const ang = Math.atan2(y2 - y1, x2 - x1);
-      drawDimText(s.x, s.y, fmt(len) + "mm", ang);
+      drawDimText(s.x, s.y, formatUnit(len, store.unit), ang);
     }
   }
 }
@@ -326,7 +330,12 @@ function drawPreview() {
       mouseWorld.value.x - drawing.x1,
       mouseWorld.value.y - drawing.y1,
     );
-    drawDimText((a.x + b.x) / 2, (a.y + b.y) / 2, fmt(len) + " mm", 0);
+    drawDimText(
+      (a.x + b.x) / 2,
+      (a.y + b.y) / 2,
+      formatUnit(len, store.unit),
+      0,
+    );
   } else if (drawing.type === "rect") {
     const a = worldToScreen(drawing.x1, drawing.y1);
     const w = (mouseWorld.value.x - drawing.x1) * store.scale,
@@ -336,10 +345,9 @@ function drawPreview() {
     drawDimText(
       a.x + w / 2,
       a.y - 6,
-      fmt(Math.abs(mouseWorld.value.x - drawing.x1)) +
+      formatUnit(Math.abs(mouseWorld.value.x - drawing.x1), store.unit) +
         " x " +
-        fmt(Math.abs(mouseWorld.value.y - drawing.y1)) +
-        " mm",
+        formatUnit(Math.abs(mouseWorld.value.y - drawing.y1), store.unit),
       0,
     );
   } else if (drawing.type === "circle") {
@@ -351,7 +359,12 @@ function drawPreview() {
       ) * store.scale;
     ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
     ctx.stroke();
-    drawDimText(c.x, c.y - rad - 8, "r=" + fmt(rad / store.scale) + " mm", 0);
+    drawDimText(
+      c.x,
+      c.y - rad - 8,
+      "r=" + formatUnit(rad / store.scale, store.unit),
+      0,
+    );
   } else if (drawing.type === "ellipse") {
     const c = worldToScreen(drawing.cx, drawing.cy);
     const rx = Math.abs(mouseWorld.value.x - drawing.cx) * store.scale;
@@ -361,7 +374,10 @@ function drawPreview() {
     drawDimText(
       c.x,
       c.y - ry - 8,
-      "rx=" + fmt(rx / store.scale) + ", ry=" + fmt(ry / store.scale) + " mm",
+      "rx=" +
+        formatUnit(rx / store.scale, store.unit) +
+        ", ry=" +
+        formatUnit(ry / store.scale, store.unit),
       0,
     );
   } else if (drawing.type === "semicircle") {
@@ -375,7 +391,12 @@ function drawPreview() {
     const end = drawing.end ?? Math.PI / 2;
     ctx.arc(c.x, c.y, rad, start, end);
     ctx.stroke();
-    drawDimText(c.x, c.y - rad - 8, "r=" + fmt(rad / store.scale) + " mm", 0);
+    drawDimText(
+      c.x,
+      c.y - rad - 8,
+      "r=" + formatUnit(rad / store.scale, store.unit),
+      0,
+    );
   } else if (drawing.type === "polyline") {
     drawing.points.forEach((p, i) => {
       const s = worldToScreen(p[0], p[1]);
@@ -390,7 +411,7 @@ function drawPreview() {
       mouseWorld.value.x - lp[0],
       mouseWorld.value.y - lp[1],
     );
-    drawDimText(last.x, last.y - 14, fmt(len) + " mm", 0);
+    drawDimText(last.x, last.y - 14, formatUnit(len, store.unit), 0);
   } else if (drawing.type === "polygon") {
     const rad = Math.hypot(
       mouseWorld.value.x - drawing.cx,
@@ -410,7 +431,12 @@ function drawPreview() {
     ctx.closePath();
     ctx.stroke();
     const c = worldToScreen(drawing.cx, drawing.cy);
-    drawDimText(c.x, c.y - rad * store.scale - 8, "r=" + fmt(rad) + " mm", 0);
+    drawDimText(
+      c.x,
+      c.y - rad * store.scale - 8,
+      "r=" + formatUnit(rad, store.unit),
+      0,
+    );
   } else if (drawing.type === "preset") {
     const rad = Math.hypot(
       mouseWorld.value.x - drawing.cx,
@@ -494,7 +520,7 @@ function drawGuides() {
       ctx.stroke();
       mx = (a.x + b.x) / 2;
       my = a.y;
-      text = fmt(g.gap) + " mm";
+      text = formatUnit(g.gap, store.unit);
     } else {
       const a = worldToScreen(g.x, g.y1),
         b = worldToScreen(g.x, g.y2);
@@ -504,7 +530,7 @@ function drawGuides() {
       ctx.stroke();
       mx = a.x;
       my = (a.y + b.y) / 2;
-      text = fmt(g.gap) + " mm";
+      text = formatUnit(g.gap, store.unit);
     }
     ctx.font = "10px ui-monospace, monospace";
     const w = ctx.measureText(text).width;

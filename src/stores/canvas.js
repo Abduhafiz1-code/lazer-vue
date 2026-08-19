@@ -36,6 +36,7 @@ export const useCanvasStore = defineStore("canvas", {
     eraserSize: 6, // mm, diameter
     polygonSides: 6,
     presetShape: "triangle",
+    unit: "mm",
     dirty: false,
     clipboard: null,
     history: [],
@@ -45,6 +46,9 @@ export const useCanvasStore = defineStore("canvas", {
   getters: {
     selectedShape(state) {
       return state.shapes.find((s) => s.id === state.selectedId) || null;
+    },
+    unitLabel(state) {
+      return state.unit;
     },
     canUndo(state) {
       return state.historyIndex > 0;

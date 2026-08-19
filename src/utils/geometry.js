@@ -4,6 +4,24 @@ export const LAYER_COLOR = {
   mark: "#e0d13f",
 };
 
+export const UNITS = {
+  mm: { label: "mm", factor: 1 },
+  cm: { label: "cm", factor: 10 },
+  mt: { label: "mt", factor: 1000 },
+};
+
+export function unitFactor(unit = "mm") {
+  return UNITS[unit]?.factor || UNITS.mm.factor;
+}
+
+export function unitValue(mm, unit = "mm") {
+  return mm / unitFactor(unit);
+}
+
+export function formatUnit(mm, unit = "mm") {
+  return fmt(unitValue(mm, unit)) + " " + (UNITS[unit]?.label || "mm");
+}
+
 export function fmt(v) {
   return (Math.round(v * 100) / 100).toString();
 }

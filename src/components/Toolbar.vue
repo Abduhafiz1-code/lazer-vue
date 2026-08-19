@@ -115,12 +115,21 @@
       ><input type="checkbox" v-model="store.snapOn" /> Ilashish</label
     >
     <select
-      v-model.number="store.snapMm"
+      v-model="store.unit"
+      title="O'lchov birligi"
       class="bg-panel2 border border-line rounded-md px-2 py-1.5 text-xs text-white">
-      <option :value="0.5">0.5 mm</option>
-      <option :value="1">1 mm</option>
-      <option :value="5">5 mm</option>
-      <option :value="10">10 mm</option>
+      <option value="mm">mm</option>
+      <option value="cm">cm</option>
+      <option value="mt">mt (1 metr)</option>
+    </select>
+    <select
+      v-model.number="snapValue"
+      class="bg-panel2 border border-line rounded-md px-2 py-1.5 text-xs text-white">
+      <option :value="0.1">0.1 {{ store.unit }}</option>
+      <option :value="0.5">0.5 {{ store.unit }}</option>
+      <option :value="1">1 {{ store.unit }}</option>
+      <option :value="5">5 {{ store.unit }}</option>
+      <option :value="10">10 {{ store.unit }}</option>
     </select>
     <label class="chk"
       ><input type="checkbox" v-model="store.dimOn" /> O'lchamlar</label
@@ -141,13 +150,20 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { useCanvasStore } from "../stores/canvas";
-import { SHAPE_PRESETS } from "../utils/geometry";
+import { SHAPE_PRESETS, unitFactor } from "../utils/geometry";
 
 defineProps({ saving: Boolean });
 defineEmits(["save", "delete", "zoom-fit", "export-svg", "export-dxf"]);
 
 const store = useCanvasStore();
+const snapValue = computed({
+  get: () => store.snapMm / unitFactor(store.unit),
+  set: (value) => {
+    store.snapMm = Number(value) * unitFactor(store.unit);
+  },
+});
 
 const tools = [
   { id: "select", icon: "◆", label: "Belgilash (V)" },
