@@ -40,6 +40,11 @@ export function getHandles(sh) {
       { x: sh.cx, y: sh.cy },
       { x: sh.cx + sh.r, y: sh.cy, resize: true },
     ];
+  if (sh.type === "semiellipse")
+    return [
+      { x: sh.cx, y: sh.cy },
+      { x: sh.cx + sh.rx, y: sh.cy, resize: true },
+    ];
   if (isPointsType(sh)) return sh.points.map((p) => ({ x: p[0], y: p[1] }));
   return [];
 }
@@ -84,6 +89,14 @@ export function resizeShapeHandle(sh, index, wx, wy) {
       sh.cx = wx;
       sh.cy = wy;
     } else sh.r = Math.max(0.1, Math.hypot(wx - sh.cx, wy - sh.cy));
+  } else if (sh.type === "semiellipse") {
+    if (index === 0) {
+      sh.cx = wx;
+      sh.cy = wy;
+    } else {
+      sh.rx = Math.max(0.1, Math.abs(wx - sh.cx));
+      sh.ry = Math.max(0.1, Math.abs(wy - sh.cy));
+    }
   } else if (isPointsType(sh)) {
     if (sh.points[index]) sh.points[index] = [wx, wy];
   }
@@ -146,6 +159,107 @@ export function regularPolygonPoints(cx, cy, r, sides) {
   return pts;
 }
 
+export function starPoints(cx, cy, outerRadius, innerRadius, points = 5) {
+  const result = [];
+  const total = Math.max(3, Math.round(points)) * 2;
+  for (let i = 0; i < total; i++) {
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    const angle = -Math.PI / 2 + (i / total) * Math.PI * 2;
+    result.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+  }
+  return result;
+}
+
+export function presetPoints(cx, cy, radius, preset) {
+  const sideMap = {
+    triangle: 3,
+    square: 4,
+    pentagon: 5,
+    hexagon: 6,
+    heptagon: 7,
+    octagon: 8,
+    nonagon: 9,
+    decagon: 10,
+    dodecagon: 12,
+  };
+  if (preset === "star") return starPoints(cx, cy, radius, radius * 0.45, 5);
+  if (preset === "star6") return starPoints(cx, cy, radius, radius * 0.42, 6);
+  if (preset === "diamond")
+    return [
+      [cx, cy - radius],
+      [cx + radius, cy],
+      [cx, cy + radius],
+      [cx - radius, cy],
+    ];
+  if (preset === "triangleRight")
+    return [
+      [cx - radius, cy + radius],
+      [cx + radius, cy + radius],
+      [cx + radius, cy - radius],
+    ];
+  if (preset === "trapezoid")
+    return [
+      [cx - radius * 0.6, cy - radius],
+      [cx + radius * 0.6, cy - radius],
+      [cx + radius, cy + radius],
+      [cx - radius, cy + radius],
+    ];
+  if (preset === "parallelogram")
+    return [
+      [cx - radius * 0.55, cy - radius],
+      [cx + radius, cy - radius],
+      [cx + radius * 0.55, cy + radius],
+      [cx - radius, cy + radius],
+    ];
+  if (preset === "cross")
+    return [
+      [cx - radius * 0.3, cy - radius],
+      [cx + radius * 0.3, cy - radius],
+      [cx + radius * 0.3, cy - radius * 0.3],
+      [cx + radius, cy - radius * 0.3],
+      [cx + radius, cy + radius * 0.3],
+      [cx + radius * 0.3, cy + radius * 0.3],
+      [cx + radius * 0.3, cy + radius],
+      [cx - radius * 0.3, cy + radius],
+      [cx - radius * 0.3, cy + radius * 0.3],
+      [cx - radius, cy + radius * 0.3],
+      [cx - radius, cy - radius * 0.3],
+      [cx - radius * 0.3, cy - radius * 0.3],
+    ];
+  if (preset === "arrow")
+    return [
+      [cx - radius, cy - radius * 0.25],
+      [cx, cy - radius * 0.25],
+      [cx, cy - radius * 0.65],
+      [cx + radius, cy],
+      [cx, cy + radius * 0.65],
+      [cx, cy + radius * 0.25],
+      [cx - radius, cy + radius * 0.25],
+    ];
+  if (preset === "heart") {
+    return [
+      [cx, cy + radius],
+      [cx - radius, cy],
+      [cx - radius, cy - radius * 0.55],
+      [cx - radius * 0.55, cy - radius],
+      [cx, cy - radius * 0.45],
+      [cx + radius * 0.55, cy - radius],
+      [cx + radius, cy - radius * 0.55],
+      [cx + radius, cy],
+    ];
+  }
+  if (preset === "shield")
+    return [
+      [cx, cy + radius],
+      [cx - radius, cy + radius * 0.35],
+      [cx - radius, cy - radius],
+      [cx + radius, cy - radius],
+      [cx + radius, cy + radius * 0.35],
+    ];
+  if (preset === "octagonRound") return regularPolygonPoints(cx, cy, radius, 8);
+  return regularPolygonPoints(cx, cy, radius, sideMap[preset] || 6);
+}
+
 export function shapeCenter(sh) {
   if (sh.type === "line") {
     return { x: (sh.x1 + sh.x2) / 2, y: (sh.y1 + sh.y2) / 2 };
@@ -156,7 +270,8 @@ export function shapeCenter(sh) {
   if (
     sh.type === "circle" ||
     sh.type === "ellipse" ||
-    sh.type === "semicircle"
+    sh.type === "semicircle" ||
+    sh.type === "semiellipse"
   ) {
     return { x: sh.cx, y: sh.cy };
   }
@@ -264,6 +379,16 @@ export function shapeToPoints(sh, circleSegments = 12) {
       closed: false,
     };
   }
+  if (sh.type === "semiellipse") {
+    const start = sh.start ?? -Math.PI / 2;
+    const end = sh.end ?? Math.PI / 2;
+    const pts = [];
+    for (let i = 0; i <= circleSegments; i++) {
+      const a = start + (i / circleSegments) * (end - start);
+      pts.push([sh.cx + Math.cos(a) * sh.rx, sh.cy + Math.sin(a) * sh.ry]);
+    }
+    return { points: pts, closed: false };
+  }
   if (isPointsType(sh))
     return { points: sh.points.map((p) => [p[0], p[1]]), closed: !!sh.closed };
   return { points: [], closed: false };
@@ -300,6 +425,14 @@ export function shapeBounds(sh) {
       minY: sh.cy - sh.r,
       maxX: sh.cx + sh.r,
       maxY: sh.cy + sh.r,
+    };
+  }
+  if (sh.type === "semiellipse") {
+    return {
+      minX: sh.cx - sh.rx,
+      minY: sh.cy - sh.ry,
+      maxX: sh.cx + sh.rx,
+      maxY: sh.cy + sh.ry,
     };
   }
   if (sh.type === "ellipse") {
@@ -348,6 +481,9 @@ export function moveShape(sh, dx, dy) {
     sh.cx += dx;
     sh.cy += dy;
   } else if (sh.type === "semicircle") {
+    sh.cx += dx;
+    sh.cy += dy;
+  } else if (sh.type === "semiellipse") {
     sh.cx += dx;
     sh.cy += dy;
   } else if (isPointsType(sh)) {

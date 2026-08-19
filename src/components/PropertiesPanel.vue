@@ -7,6 +7,24 @@
       </div>
       <div v-else>
         <p class="text-xs text-text2 mb-2">{{ typeLabel(sh.type) }}</p>
+        <div v-if="store.suggestionsOn" class="suggestions">
+          <strong>Auto tavsiya</strong>
+          <span v-if="sh.type === 'rect'"
+            >Burchaklarni tekis saqlang yoki kenglik/balandlikni tenglab kvadrat
+            qiling.</span
+          >
+          <span v-else-if="sh.type === 'circle'"
+            >Radiusni o'zgartiring, shaklni erkin path'ga aylantirish
+            yopiq.</span
+          >
+          <span v-else-if="sh.type === 'ellipse'"
+            >X va Y radiusini alohida o'zgartirib, oval nisbatini
+            boshqaring.</span
+          >
+          <span v-else
+            >Markazni siljiting yoki parametr o'lchamini o'zgartiring.</span
+          >
+        </div>
 
         <template v-if="sh.type === 'line'">
           <Field
@@ -90,6 +108,24 @@
             :model-value="sh.r"
             @update:model-value="(v) => update('r', v)" />
         </template>
+        <template v-else-if="sh.type === 'semiellipse'">
+          <Field
+            label="Markaz X (mm)"
+            :model-value="sh.cx"
+            @update:model-value="(v) => update('cx', v)" />
+          <Field
+            label="Markaz Y (mm)"
+            :model-value="sh.cy"
+            @update:model-value="(v) => update('cy', v)" />
+          <Field
+            label="X radius (mm)"
+            :model-value="sh.rx"
+            @update:model-value="(v) => update('rx', v)" />
+          <Field
+            label="Y radius (mm)"
+            :model-value="sh.ry"
+            @update:model-value="(v) => update('ry', v)" />
+        </template>
         <template v-else-if="sh.type === 'polyline' || sh.type === 'path'">
           <div class="row">
             <label class="text-text2 text-xs">Nuqtalar soni</label
@@ -107,10 +143,7 @@
             qo'shadi. Alt+bosish — nuqtani o'chiradi.
           </p>
         </template>
-        <template
-          v-if="
-            sh.type === 'rect' || sh.type === 'circle' || sh.type === 'line'
-          ">
+        <template v-if="sh.type === 'rect' || sh.type === 'line'">
           <button class="convert-btn" @click="store.convertToPath(sh.id)">
             Erkin nuqtali shaklga aylantirish
           </button>
@@ -175,6 +208,7 @@ function typeLabel(t) {
       circle: "Aylana",
       ellipse: "Oval",
       semicircle: "Yarim aylana",
+      semiellipse: "Yarim oval",
       polyline: "Chiziq zanjiri",
       path: "Erkin shakl",
     }[t] || t
@@ -189,6 +223,8 @@ function desc(s) {
   if (s.type === "ellipse")
     return "rx=" + fmt(s.rx) + ", ry=" + fmt(s.ry) + " mm";
   if (s.type === "semicircle") return "r=" + fmt(s.r) + " mm";
+  if (s.type === "semiellipse")
+    return "rx=" + fmt(s.rx) + ", ry=" + fmt(s.ry) + " mm";
   return s.points.length + " nuqta";
 }
 
@@ -219,6 +255,23 @@ const Field = {
 }
 .row {
   @apply flex items-center justify-between mb-2 gap-2;
+}
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 12px;
+  padding: 8px;
+  border-left: 2px solid #e07a3f;
+  background: #292c2f;
+  color: #c8cbc5;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.suggestions strong {
+  color: #e07a3f;
+  font-size: 10px;
+  text-transform: uppercase;
 }
 .num-input {
   width: 90px;

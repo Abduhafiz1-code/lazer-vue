@@ -45,6 +45,14 @@
         v-model.number="store.polygonSides"
         class="bg-panel2 border border-line rounded-md px-1.5 py-1 text-xs text-white w-12" />
     </div>
+    <select
+      v-if="store.tool === 'preset'"
+      v-model="store.presetShape"
+      class="bg-panel2 border border-line rounded-md px-2 py-1.5 text-xs text-white max-w-40">
+      <option v-for="shape in presets" :key="shape.id" :value="shape.id">
+        {{ shape.label }}
+      </option>
+    </select>
 
     <button
       class="tool"
@@ -52,6 +60,13 @@
       :disabled="!store.selectedShape"
       @click="store.duplicateSelected()">
       ⧉
+    </button>
+    <button
+      class="tool"
+      title="Shaklni ikkiga bo'lish"
+      :disabled="!store.selectedShape"
+      @click="store.splitSelected()">
+      ⫽
     </button>
     <button
       v-if="
@@ -114,6 +129,10 @@
       ><input type="checkbox" v-model="store.guidesOn" /> Masofa
       chiziqlari</label
     >
+    <label class="chk"
+      ><input type="checkbox" v-model="store.suggestionsOn" /> Auto
+      tavsiya</label
+    >
     <div class="sep" />
 
     <button class="btn" @click="$emit('export-svg')">SVG</button>
@@ -138,12 +157,36 @@ const tools = [
   { id: "semicircle", icon: "◔", label: "Yarim aylana (S)" },
   { id: "polyline", icon: "∠", label: "Erkin chiziq (P)" },
   { id: "polygon", icon: "⬡", label: "Ko'p qirrali shakl (G)" },
+  { id: "preset", icon: "✦", label: "20 ta tayyor shakl" },
   {
     id: "eraser",
     icon: "⌫",
     label: "Yo'q qilish chizig'i — boshlab chizilgan masofani o'chiradi (E)",
   },
   { id: "pan", icon: "✥", label: "Surish (Space)" },
+];
+
+const presets = [
+  { id: "triangle", label: "Uchburchak" },
+  { id: "square", label: "Kvadrat" },
+  { id: "pentagon", label: "Beshburchak" },
+  { id: "hexagon", label: "Olti burchak" },
+  { id: "heptagon", label: "Yetti burchak" },
+  { id: "octagon", label: "Sakkiz burchak" },
+  { id: "nonagon", label: "To'qqiz burchak" },
+  { id: "decagon", label: "O'n burchak" },
+  { id: "dodecagon", label: "O'n ikki burchak" },
+  { id: "diamond", label: "Romb" },
+  { id: "triangleRight", label: "To'g'ri uchburchak" },
+  { id: "trapezoid", label: "Trapetsiya" },
+  { id: "parallelogram", label: "Parallelogramma" },
+  { id: "star", label: "Besh qirrali yulduz" },
+  { id: "star6", label: "Olti qirrali yulduz" },
+  { id: "cross", label: "Krest" },
+  { id: "arrow", label: "Strelka" },
+  { id: "heart", label: "Yurak" },
+  { id: "shield", label: "Qalqon" },
+  { id: "octagonRound", label: "Yumaloq sakkizburchak" },
 ];
 
 const layers = [

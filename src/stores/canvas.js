@@ -4,6 +4,7 @@ import {
   moveShape,
   cloneShape,
   shapeToPoints,
+  shapeBounds,
 } from "../utils/geometry";
 import { eraseAt, eraseAlong } from "../utils/eraser";
 
@@ -30,8 +31,10 @@ export const useCanvasStore = defineStore("canvas", {
     snapMm: 1,
     dimOn: true,
     guidesOn: true,
+    suggestionsOn: true,
     eraserSize: 6, // mm, diameter
     polygonSides: 6,
+    presetShape: "triangle",
     dirty: false,
     clipboard: null,
     history: [],
@@ -148,6 +151,78 @@ export const useCanvasStore = defineStore("canvas", {
       const sh = this.selectedShape;
       if (!sh) return;
       moveShape(sh, dx, dy);
+      this._commit();
+    },
+
+    splitSelected() {
+      const sh = this.selectedShape;
+      if (!sh) return;
+      const base = cloneShape(sh);
+      if (sh.type === "circle") {
+        this.shapes = this.shapes.filter((item) => item.id !== sh.id);
+        this.shapes.push(
+          {
+            ...base,
+            id: newId(),
+            type: "semicircle",
+            start: -Math.PI / 2,
+            end: Math.PI / 2,
+          },
+          {
+            ...base,
+            id: newId(),
+            type: "semicircle",
+            start: Math.PI / 2,
+            end: Math.PI * 1.5,
+          },
+        );
+      } else if (sh.type === "ellipse") {
+        this.shapes = this.shapes.filter((item) => item.id !== sh.id);
+        this.shapes.push(
+          {
+            ...base,
+            id: newId(),
+            type: "semiellipse",
+            start: -Math.PI / 2,
+            end: Math.PI / 2,
+          },
+          {
+            ...base,
+            id: newId(),
+            type: "semiellipse",
+            start: Math.PI / 2,
+            end: Math.PI * 1.5,
+          },
+        );
+      } else if (sh.type === "semicircle" || sh.type === "semiellipse") {
+        const start = sh.start ?? -Math.PI / 2;
+        const end = sh.end ?? Math.PI / 2;
+        const middle = start + (end - start) / 2;
+        this.shapes = this.shapes.filter((item) => item.id !== sh.id);
+        this.shapes.push(
+          { ...base, id: newId(), start, end: middle },
+          { ...base, id: newId(), start: middle, end },
+        );
+      } else if (sh.type === "rect") {
+        this.shapes = this.shapes.filter((item) => item.id !== sh.id);
+        this.shapes.push(
+          { ...base, id: newId(), w: sh.w / 2 },
+          { ...base, id: newId(), x: sh.x + sh.w / 2, w: sh.w / 2 },
+        );
+      } else if (sh.points?.length >= 4) {
+        const bounds = shapeBounds(sh);
+        const mid = (bounds.minX + bounds.maxX) / 2;
+        const left = sh.points.filter(([x]) => x <= mid);
+        const right = sh.points.filter(([x]) => x >= mid);
+        if (left.length >= 2 && right.length >= 2) {
+          this.shapes = this.shapes.filter((item) => item.id !== sh.id);
+          this.shapes.push(
+            { ...base, id: newId(), points: left, closed: false },
+            { ...base, id: newId(), points: right, closed: false },
+          );
+        }
+      }
+      this.selectedId = this.shapes.at(-1)?.id || null;
       this._commit();
     },
 

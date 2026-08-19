@@ -52,6 +52,7 @@ import {
   cloneShape,
   pointInPolygon,
   regularPolygonPoints,
+  presetPoints,
   isPointsType,
   shapeCenter,
   rotateShape,
@@ -208,6 +209,19 @@ function drawShape(sh, selected) {
     const start = sh.start ?? -Math.PI / 2;
     const end = sh.end ?? Math.PI / 2;
     ctx.arc(c.x, c.y, Math.max(1, sh.r * store.scale), start, end);
+  } else if (sh.type === "semiellipse") {
+    const c = worldToScreen(sh.cx, sh.cy);
+    const start = sh.start ?? -Math.PI / 2;
+    const end = sh.end ?? Math.PI / 2;
+    ctx.ellipse(
+      c.x,
+      c.y,
+      Math.max(1, sh.rx * store.scale),
+      Math.max(1, sh.ry * store.scale),
+      0,
+      start,
+      end,
+    );
   } else if (isPointsType(sh)) {
     sh.points.forEach((p, i) => {
       const s = worldToScreen(p[0], p[1]);
@@ -397,6 +411,19 @@ function drawPreview() {
     ctx.stroke();
     const c = worldToScreen(drawing.cx, drawing.cy);
     drawDimText(c.x, c.y - rad * store.scale - 8, "r=" + fmt(rad) + " mm", 0);
+  } else if (drawing.type === "preset") {
+    const rad = Math.hypot(
+      mouseWorld.value.x - drawing.cx,
+      mouseWorld.value.y - drawing.cy,
+    );
+    const pts = presetPoints(drawing.cx, drawing.cy, rad, drawing.preset);
+    pts.forEach((p, i) => {
+      const s = worldToScreen(p[0], p[1]);
+      if (i === 0) ctx.moveTo(s.x, s.y);
+      else ctx.lineTo(s.x, s.y);
+    });
+    ctx.closePath();
+    ctx.stroke();
   }
   ctx.setLineDash([]);
 }
@@ -539,6 +566,17 @@ function hitTest(px, py) {
       const span = (end - start + Math.PI * 2) % (Math.PI * 2);
       const insideArc = normalized <= span + 1e-6 || span >= Math.PI * 2 - 1e-6;
       if (d <= sh.r + tolMm && insideArc) return sh;
+    } else if (sh.type === "semiellipse") {
+      const dx = w.x - sh.cx;
+      const dy = w.y - sh.cy;
+      const d = Math.hypot(dx / sh.rx, dy / sh.ry);
+      const start = sh.start ?? -Math.PI / 2;
+      const end = sh.end ?? Math.PI / 2;
+      const ang = Math.atan2(dy / sh.ry, dx / sh.rx);
+      const normalized = (ang - start + Math.PI * 2) % (Math.PI * 2);
+      const span = (end - start + Math.PI * 2) % (Math.PI * 2);
+      if (d <= 1 + tolMm / Math.min(sh.rx, sh.ry) && normalized <= span + 1e-6)
+        return sh;
     } else if (sh.type === "line") {
       if (distToSeg(w.x, w.y, sh.x1, sh.y1, sh.x2, sh.y2) < tolMm) return sh;
     } else if (isPointsType(sh)) {
@@ -657,44 +695,6 @@ function onDown(e) {
       };
       return;
     }
-    if (
-      store.selectedShape &&
-      (store.selectedShape.type === "circle" ||
-        store.selectedShape.type === "ellipse" ||
-        store.selectedShape.type === "semicircle")
-    ) {
-      const pathSh = cloneShape(store.selectedShape);
-      store.convertToPath(store.selectedShape.id);
-      const sh = store.selectedShape;
-      if (sh && sh.points) {
-        const hitPoint = hitPathVertex(m.x, m.y, sh);
-        if (hitPoint) {
-          dragState = {
-            mode: "path-edit",
-            id: sh.id,
-            orig: cloneShape(sh),
-            pointIndex: hitPoint.index,
-            startWorld: w,
-          };
-          return;
-        }
-      }
-      const hit = hitTest(m.x, m.y);
-      if (hit) {
-        store.selectShape(hit.id);
-        dragState = {
-          mode: "move",
-          id: hit.id,
-          orig: cloneShape(hit),
-          startWorld: w,
-        };
-      } else {
-        store.selectShape(null);
-        dragState = null;
-      }
-      render();
-      return;
-    }
     const hit = hitTest(m.x, m.y);
     if (hit) {
       store.selectShape(hit.id);
@@ -731,6 +731,27 @@ function onDown(e) {
         layer: store.currentLayer,
         points: pts,
         closed: true,
+      });
+      drawing = null;
+      finishShapeAndSelect();
+    }
+    render();
+    return;
+  }
+  if (store.tool === "preset") {
+    if (!drawing)
+      drawing = { type: "preset", cx: wx, cy: wy, preset: store.presetShape };
+    else {
+      const rad = Math.max(
+        0.1,
+        store.snap(Math.hypot(wx - drawing.cx, wy - drawing.cy)),
+      );
+      store.addShape({
+        type: "path",
+        layer: store.currentLayer,
+        points: presetPoints(drawing.cx, drawing.cy, rad, drawing.preset),
+        closed: true,
+        preset: drawing.preset,
       });
       drawing = null;
       finishShapeAndSelect();
