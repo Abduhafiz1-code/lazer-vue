@@ -358,7 +358,7 @@ export const useCanvasStore = defineStore("canvas", {
       const pad = 40;
       const sx = (viewportW - pad * 2) / (maxX - minX || 1);
       const sy = (viewportH - pad * 2) / (maxY - minY || 1);
-      this.scale = Math.max(0.5, Math.min(40, Math.min(sx, sy)));
+      this.scale = Math.max(0.002, Math.min(200, Math.min(sx, sy)));
       this.originX = pad - minX * this.scale;
       this.originY = pad - minY * this.scale;
     },

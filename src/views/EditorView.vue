@@ -107,8 +107,8 @@ function exportDxf() {
 <style scoped>
 .ai-toggle {
   position: absolute;
-  right: 274px;
-  bottom: 16px;
+  right: 16px;
+  top: 16px;
   z-index: 10;
   border: 1px solid #e07a3f;
   border-radius: 4px;
@@ -123,6 +123,7 @@ function exportDxf() {
 @media (max-width: 800px) {
   .ai-toggle {
     right: 16px;
+    top: 16px;
   }
 }
 </style>

@@ -10,6 +10,7 @@
       @mouseup="onUp"
       @mouseleave="onUp"
       @dblclick="onDblClick"
+      @contextmenu.prevent
       @wheel.prevent="onWheel"></canvas>
     <div
       class="absolute bottom-2.5 left-2.5 text-[11px] text-text2 font-mono bg-panel/85 px-2 py-1 rounded-md pointer-events-none">
@@ -30,6 +31,33 @@
         title="Kattalashtirish"
         @click="zoomBy(1.15)">
         +
+      </button>
+    </div>
+    <div
+      v-if="showWelcome"
+      class="absolute top-12 left-1/2 -translate-x-1/2 z-20 w-[min(420px,calc(100%-24px))] bg-panel border border-accent/70 rounded-lg p-4 shadow-2xl">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold text-white">Chizma boshqaruvi</p>
+          <p class="mt-1 text-xs leading-5 text-text2">
+            Sichqoncha g'ildiragi — kursor atrofida zoom • O'rta tugma yoki
+            Space — sahifani surish • + / - — zoom • 0 yoki F — hammasini
+            ko'rsatish
+          </p>
+          <p class="mt-2 text-xs leading-5 text-text2">
+            V, L, R, C, O, S, P, G, E — asboblarni tez tanlash. Strelkalar —
+            tanlangan shaklni siljitish.
+          </p>
+        </div>
+        <button
+          class="text-text2 hover:text-white text-lg leading-none"
+          title="Yopish"
+          @click="dismissWelcome">
+          ×
+        </button>
+      </div>
+      <button class="btn mt-3 w-full" @click="dismissWelcome">
+        Tushunarli
       </button>
     </div>
     <div
@@ -71,9 +99,15 @@ let dragState = null; // { mode: 'move'|'resize', id, handleIndex, orig, startWo
 let activeGuides = { guides: [], gaps: [] };
 let hoverHandle = false;
 const mouseWorld = ref({ x: 0, y: 0 });
+const showWelcome = ref(false);
+const spacePanning = ref(false);
+
+const MIN_SCALE = 0.002;
+const MAX_SCALE = 200;
 
 const cursorClass = computed(() => {
-  if (store.tool === "pan" || panning) return "cursor-grab";
+  if (store.tool === "pan" || spacePanning.value || panning)
+    return "cursor-grab";
   if (store.tool === "eraser") return "cursor-none";
   if (store.tool === "select")
     return hoverHandle
@@ -126,11 +160,14 @@ function getMousePos(e) {
 
 function drawGrid() {
   const r = wrap.value.getBoundingClientRect();
-  let step = 10;
-  if (store.scale < 2) step = 50;
-  else if (store.scale < 5) step = 10;
-  else if (store.scale < 12) step = 5;
-  else step = 1;
+  const targetPixels = 48;
+  const roughStep = targetPixels / store.scale;
+  const magnitude =
+    10 ** Math.floor(Math.log10(Math.max(roughStep, MIN_SCALE)));
+  const normalized = roughStep / magnitude;
+  const step =
+    (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) *
+    magnitude;
   const tl = screenToWorld(0, 0);
   const br = screenToWorld(r.width, r.height);
   const startX = Math.floor(tl.x / step) * step;
@@ -680,7 +717,7 @@ function hitPathVertex(px, py, sh) {
 
 function onDown(e) {
   const m = getMousePos(e);
-  if (store.tool === "pan" || e.button === 1) {
+  if (store.tool === "pan" || spacePanning.value || e.button === 1) {
     panning = { sx: m.x, sy: m.y, ox: store.originX, oy: store.originY };
     return;
   }
@@ -1048,7 +1085,7 @@ function zoomBy(factor) {
   const cx = r.width / 2,
     cy = r.height / 2;
   const before = screenToWorld(cx, cy);
-  store.scale = Math.max(0.5, Math.min(60, store.scale * factor));
+  store.scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, store.scale * factor));
   const after = worldToScreen(before.x, before.y);
   store.originX += cx - after.x;
   store.originY += cy - after.y;
@@ -1059,7 +1096,7 @@ function onWheel(e) {
   const m = getMousePos(e);
   const before = screenToWorld(m.x, m.y);
   const factor = e.deltaY < 0 ? 1.1 : 0.9;
-  store.scale = Math.max(0.5, Math.min(60, store.scale * factor));
+  store.scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, store.scale * factor));
   const after = worldToScreen(before.x, before.y);
   store.originX += m.x - after.x;
   store.originY += m.y - after.y;
@@ -1069,6 +1106,24 @@ function onWheel(e) {
 function onKeydown(e) {
   if (e.target.tagName === "INPUT") return;
   const ctrl = e.ctrlKey || e.metaKey;
+
+  if (e.key === " ") {
+    e.preventDefault();
+    spacePanning.value = true;
+    return;
+  }
+  if (e.key === "+" || e.key === "=" || e.key === "-") {
+    e.preventDefault();
+    zoomBy(e.key === "-" ? 0.8 : 1.25);
+    return;
+  }
+  if (e.key === "0" || e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    const r = wrap.value.getBoundingClientRect();
+    store.zoomFit(r.width, r.height);
+    render();
+    return;
+  }
 
   if (ctrl && e.key.toLowerCase() === "z") {
     e.preventDefault();
@@ -1143,6 +1198,8 @@ function onKeydown(e) {
     l: "line",
     r: "rect",
     c: "circle",
+    o: "ellipse",
+    s: "semicircle",
     p: "polyline",
     g: "polygon",
     e: "eraser",
@@ -1151,6 +1208,15 @@ function onKeydown(e) {
     store.setTool(map[e.key]);
     drawing = null;
   }
+}
+
+function onKeyup(e) {
+  if (e.key === " ") spacePanning.value = false;
+}
+
+function dismissWelcome() {
+  showWelcome.value = false;
+  localStorage.setItem("lazer-chizma-welcome-seen", "1");
 }
 
 defineExpose({
@@ -1166,10 +1232,13 @@ onMounted(() => {
   resize();
   window.addEventListener("resize", resize);
   window.addEventListener("keydown", onKeydown);
+  window.addEventListener("keyup", onKeyup);
+  showWelcome.value = localStorage.getItem("lazer-chizma-welcome-seen") !== "1";
 });
 onBeforeUnmount(() => {
   window.removeEventListener("resize", resize);
   window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("keyup", onKeyup);
 });
 
 watch(
